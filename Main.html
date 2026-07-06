@@ -1275,7 +1275,7 @@ function tryMove(dx,dy){
   const it=ITEMS_ON.find(i=>i.x===nx&&i.y===ny);
   if(it)pickup(it);
   // stairs
-  if(MAP[ny][nx]===T.STAIR){nextFloor();return;}
+  if(MAP[ny][nx]===T.STAIR){VIS=computeFOV(G.x,G.y);updateCamera();stairPrompt();return;}
   VIS=computeFOV(G.x,G.y);
   updateCamera();
   checkSpeakers(); // newly-revealed bosses get their say
@@ -1592,6 +1592,30 @@ function interactDecor(d){
   }
   updateSidebar();
   endPlayerTurn();
+}
+// standing on the stairs asks before descending — clear the floor at your leisure
+function stairPrompt(){
+  if(busy||gameOver||DLG)return;
+  busy=true;
+  const monsters=ENEMIES.filter(e=>!e.dead).length;
+  const loot=ITEMS_ON.length;
+  const chests=DECOR.filter(d=>d.interact).length;
+  const cleared=monsters===0&&loot===0&&chests===0;
+  const ov=document.getElementById('generic-overlay'),p=document.getElementById('generic-panel');
+  p.innerHTML=`<h2>🔻 The Stairs Down</h2><div class="psub">Floor ${G.floor} → Floor ${G.floor+1}</div>
+    <div class="feat-line" style="text-align:center;margin-bottom:8px">${cleared
+      ?'<b style="color:#7ee2a8">✦ Floor cleared!</b> Nothing of value remains.'
+      :`Still here: <b style="color:#ff9b8d">${monsters}</b> monsters · <b style="color:#f0d472">${loot}</b> items on the ground · <b style="color:#e6a35c">${chests}</b> unopened containers`}</div>
+    <div class="choice-list">
+      <div class="choice" data-st="go"><h4>⬇ Descend</h4><p>Visit the merchant, then brave floor ${G.floor+1}. There is no coming back up.</p></div>
+      <div class="choice" data-st="stay"><h4>🗺 Keep exploring</h4><p>Finish this floor first. Return to the stairs (or press ⏎ on them) when ready.</p></div>
+    </div>`;
+  ov.classList.add('open');
+  p.querySelectorAll('[data-st]').forEach(el=>el.onclick=()=>{
+    closeGeneric();
+    if(el.dataset.st==='go'){busy=false;nextFloor();}
+    else{busy=false;msg('You turn back to scour the floor. The stairs will wait.','sys');endPlayerTurn();}
+  });
 }
 function nextFloor(){
   if(G.floor>=10)return;
@@ -2543,7 +2567,7 @@ function openHall(){
 
 // ── CHARACTER SHEET (C key / click your name) ──
 function openCharSheet(){
-  if(gameOver||!G.cls)return;
+  if(gameOver||busy||!G.cls)return; // busy guard: never overwrite an open decision panel
   const ov=document.getElementById('generic-overlay'),p=document.getElementById('generic-panel');
   const clsStr=Object.keys(G.classLevels).map(id=>`${CLASS_BY_ID[id].emoji} ${CLASS_BY_ID[id].name} ${G.classLevels[id]}`).join(' / ');
   const sb=setBonuses();
@@ -2744,6 +2768,7 @@ document.addEventListener('keydown',e=>{
   else if(k==='r')shortRest();
   else if(k==='f')openAbilities();
   else if(k==='c')openCharSheet();
+  else if((k==='enter'||k==='>')&&MAP[G.y]&&MAP[G.y][G.x]===T.STAIR)stairPrompt();
   else if(k==='m'){soundOn=!soundOn;msg('Sound '+(soundOn?'on 🔊':'off 🔇'),'sys');handled=true;}
   else if(k==='b'&&G.race.id==='dragonborn')breathWeapon();
   else handled=false;
