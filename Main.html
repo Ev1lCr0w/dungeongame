@@ -214,6 +214,11 @@ button{font-family:inherit}
   </div>
 
   <div class="csec">
+    <h3>⚧ Identity</h3>
+    <div class="pick-grid" id="gender-grid" style="grid-template-columns:repeat(2,1fr)"></div>
+  </div>
+
+  <div class="csec">
     <h3>🩸 Lineage</h3>
     <div class="pick-grid" id="race-grid"></div>
   </div>
@@ -322,6 +327,13 @@ function sfx(type){
     case 'shop': [392,523,659].forEach((f,i)=>tone(f,0.3,'triangle',0.18,f*1.3,i*0.1)); break;
     case 'enemyhit': noise(0.1,0.22,600); tone(120,0.12,'sawtooth',0.16,70); break;
     case 'heartbeat': tone(58,0.11,'sine',0.5,38); tone(52,0.1,'sine',0.38,34,0.16); break;
+    case 'scream': // a gloriously undignified high-pitched shriek
+      tone(1250,0.55,'sawtooth',0.32,380);
+      tone(1600,0.5,'sine',0.26,520,0.03);
+      tone(1900,0.18,'sine',0.2,1500,0.02);
+      tone(950,0.45,'square',0.1,320,0.08);
+      noise(0.4,0.08,3200,0.05);
+      break;
   }
 }
 // soft looping biome ambience, scheduled from the render loop
@@ -348,10 +360,10 @@ const STAT_NAMES=['str','dex','con','int','wis','cha'];
 const STAT_FULL={str:'Strength',dex:'Dexterity',con:'Constitution',int:'Intelligence',wis:'Wisdom',cha:'Charisma'};
 
 const RACES=[
-  {id:'human',name:'Human',emoji:'🧑',mods:{str:1,dex:1,con:1,int:1,wis:1,cha:1},desc:'Versatile. +1 to every ability.',trait:'Resourceful: start with an extra Health Potion.'},
-  {id:'elf',name:'High Elf',emoji:'🧝',mods:{dex:2,int:1},desc:'+2 DEX, +1 INT.',trait:'Fey Step: 18% to dodge any hit (DEX reflexes).'},
-  {id:'dwarf',name:'Dwarf',emoji:'🧔',mods:{con:2,str:1},desc:'+2 CON, +1 STR.',trait:'Dwarven Resilience: +2 max HP per level, poison resist.'},
-  {id:'halfling',name:'Halfling',emoji:'🧒',mods:{dex:2,cha:1},desc:'+2 DEX, +1 CHA.',trait:'Lucky: reroll natural 1s on attacks.'},
+  {id:'human',name:'Human',emoji:'🧑',m:'👨',f:'👩',mods:{str:1,dex:1,con:1,int:1,wis:1,cha:1},desc:'Versatile. +1 to every ability.',trait:'Resourceful: start with an extra Health Potion.'},
+  {id:'elf',name:'High Elf',emoji:'🧝',m:'🧝‍♂️',f:'🧝‍♀️',mods:{dex:2,int:1},desc:'+2 DEX, +1 INT.',trait:'Fey Step: 18% to dodge any hit (DEX reflexes).'},
+  {id:'dwarf',name:'Dwarf',emoji:'🧔',m:'🧔‍♂️',f:'🧔‍♀️',mods:{con:2,str:1},desc:'+2 CON, +1 STR.',trait:'Dwarven Resilience: +2 max HP per level, poison resist.'},
+  {id:'halfling',name:'Halfling',emoji:'🧒',m:'👦',f:'👧',mods:{dex:2,cha:1},desc:'+2 DEX, +1 CHA.',trait:'Lucky: reroll natural 1s on attacks.'},
   {id:'halforc',name:'Half-Orc',emoji:'👹',mods:{str:2,con:1},desc:'+2 STR, +1 CON.',trait:'Savage Crits: critical hits deal an extra weapon die.'},
   {id:'dragonborn',name:'Dragonborn',emoji:'🐲',mods:{str:2,cha:1},desc:'+2 STR, +1 CHA.',trait:'Breath Weapon: a usable 2d6 fire cone (DEX save).'},
   {id:'tiefling',name:'Tiefling',emoji:'😈',mods:{cha:2,int:1},desc:'+2 CHA, +1 INT.',trait:'Hellish Rebuke: deal 1d6 fire to attackers who hit you.'},
@@ -781,10 +793,25 @@ const HERO_REPLIES=[
   '"The stair is mine. The hoard too, come to think of it."',
 ];
 function checkSpeakers(){
+  checkDragonFright();
   if(DLG)return;
   ENEMIES.forEach(e=>{
     if(e.dead||e.spoke||!e.speech)return;
     if(VIS[e.y]&&VIS[e.y][e.x]&&dist(e,G)<=7){e.spoke=true;startDialogue(e.speech);}
+  });
+}
+// the hero is very brave. the hero screams anyway.
+function checkDragonFright(){
+  ENEMIES.forEach(e=>{
+    if(e.dead||e.screamedAt||!/dragon/i.test(e.name))return;
+    if(VIS[e.y]&&VIS[e.y][e.x]&&dist(e,G)<=8){
+      e.screamedAt=true;
+      sfx('scream');
+      spawnText(G.x,G.y-0.5,'AIIIEEEE!!','#ff9b8d',18);
+      spawnText(G.x+0.4,G.y-1,'😱','#fff',20);
+      msg(`${G.name} lets out a distinctly heroic scream at the sight of the ${e.name}!`,'warn');
+      shake=Math.max(shake,5);
+    }
   });
 }
 
@@ -1421,7 +1448,7 @@ function loadFloor(floor){
       G.dragonMet[gd.breathType]=met+1;
       const linePool=DRAGON_LINES[gd.breathType]||DRAGON_LINES.fire;
       gd.speech=[[gd.name,gd.glyph,linePool[met%linePool.length]],
-                 [G.name,G.race.emoji,HERO_REPLIES[rnd(HERO_REPLIES.length)-1]]];
+                 [G.name,(G.emoji||G.race.emoji),HERO_REPLIES[rnd(HERO_REPLIES.length)-1]]];
       setTimeout(()=>msg(`An ${gd.name} guards the stairs! Slay it to descend.`,'warn'),300);
     }
   }
@@ -1450,7 +1477,7 @@ function loadFloor(floor){
   if(floor===10)setTimeout(()=>startDialogue([
     ["Vol'tharix the Dread Lich",'☠️','"So. The gnat that gnawed its way through my dungeon arrives at last."'],
     ["Vol'tharix the Dread Lich",'☠️','"I have devoured a thousand heroes. Your soul will fuel my phylactery for an AGE."'],
-    [G.name,G.race.emoji,'"Your reign of dread ends today, lich. For the realm!"'],
+    [G.name,(G.emoji||G.race.emoji),'"Your reign of dread ends today, lich. For the realm!"'],
   ]),600);
   updateSidebar();
   busy=false;
@@ -1517,7 +1544,7 @@ function resolveRescue(d,choice){
     w.name='Doppelganger';w.glyph='🎭';w.col='#c39be0';
     startDialogue([
       ['The "Prisoner"','🎭','"How KIND of you… how warm… how DELICIOUS."'],
-      [G.name,G.race.emoji,'"A doppelganger! Defend yourself!"'],
+      [G.name,(G.emoji||G.race.emoji),'"A doppelganger! Defend yourself!"'],
     ],()=>{sfx('crit');shake=Math.max(shake,8);spawnParticle(d.x,d.y,'#c39be0',18,2.2);busy=true;endPlayerTurn();});
     return;
   }
@@ -1951,7 +1978,7 @@ function drawPlayer(){
   if(G.shieldAC){ctx.strokeStyle='#5dade2';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(px,py+2,TS*0.48,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
   // raised sprite with idle breathing
   ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(G.race.emoji,px,py-ENT_RAISE+bob);
+  ctx.fillText((G.emoji||G.race.emoji),px,py-ENT_RAISE+bob);
   // class pip
   ctx.font='11px serif';ctx.fillText(G.cls.emoji,px+8,py-ENT_RAISE+8+bob);
 }
@@ -2136,7 +2163,8 @@ function updateSidebar(){
   if(!G.cls)return;
   document.getElementById('sb-name').textContent=G.name;
   const clsStr=Object.keys(G.classLevels).map(id=>`${CLASS_BY_ID[id].name} ${G.classLevels[id]}`).join(' / ');
-  document.getElementById('sb-meta').innerHTML=`${G.race.name} · ${clsStr} · Lv ${G.level} · ${G.gold}🪙`;
+  const gSym=G.gender?(G.gender==='f'?'♀ ':'♂ '):'';
+  document.getElementById('sb-meta').innerHTML=`${gSym}${G.race.name} · ${clsStr} · Lv ${G.level} · ${G.gold}🪙`;
   const body=document.getElementById('sb-body');
   const hpPct=Math.max(0,G.hp/G.maxHp*100);
   const xpNeed=lvlXP(G.level),xpPrev=lvlXP(G.level-1)||0;
@@ -2357,7 +2385,7 @@ function openInventory(reopen){
   let doll='<div class="pdoll">';
   cells.forEach(cslot=>{
     if(cslot===null){doll+='<div></div>';return;}
-    if(cslot==='FIG'){doll+=`<div class="pd-fig">${G.race.emoji}<span style="position:absolute;bottom:2px;right:4px;font-size:1rem">${G.cls.emoji}</span></div>`;return;}
+    if(cslot==='FIG'){doll+=`<div class="pd-fig">${(G.emoji||G.race.emoji)}<span style="position:absolute;bottom:2px;right:4px;font-size:1rem">${G.cls.emoji}</span></div>`;return;}
     const n=cslot==='weapon'?(G.weapon&&G.weapon.name):(G.equip&&G.equip[cslot]);
     const it=n?ITEMS[n]:null;
     const bcol=it?(it.rarity?it.col:(smithLevel(n)>0?'#e6a35c':'var(--border2)')):'var(--border)';
@@ -2505,6 +2533,7 @@ function loadGame(){
     G=data.g;
     G.race=RACES.find(r=>r.id===G.race);
     G.cls=CLASS_BY_ID[G.cls];
+    if(!G.emoji)G.emoji=G.race.emoji; // saves from before gender existed
     MAP=data.map;ROOMS=data.rooms;EXPLORED=data.explored;
     ENEMIES=data.enemies||[];ITEMS_ON=data.items||[];DECOR=data.decor||[];STAINS=data.stains||[];
     PARTICLES=[];FLOATERS=[];ANIMS=[];
@@ -2571,7 +2600,7 @@ function openCharSheet(){
   const ov=document.getElementById('generic-overlay'),p=document.getElementById('generic-panel');
   const clsStr=Object.keys(G.classLevels).map(id=>`${CLASS_BY_ID[id].emoji} ${CLASS_BY_ID[id].name} ${G.classLevels[id]}`).join(' / ');
   const sb=setBonuses();
-  let html=`<h2>📜 ${G.name}</h2><div class="psub">${G.race.emoji} ${G.race.name} · ${clsStr} · Level ${G.level}</div>`;
+  let html=`<h2>📜 ${G.name}</h2><div class="psub">${(G.emoji||G.race.emoji)} ${G.race.name} · ${clsStr} · Level ${G.level}</div>`;
   html+='<div class="stat-row" style="margin-bottom:12px">';
   STAT_NAMES.forEach(s=>{const v=G.stats[s],m=mod(v);html+=`<div class="sbox"><div class="sn">${s}</div><div class="sv">${v}</div><div class="sm">${m>=0?'+':''}${m}</div></div>`;});
   html+='</div>';
@@ -2639,8 +2668,16 @@ function victory(){
 // ═══════════════════════════════════════════════════════════════
 //  CHARACTER CREATION
 // ═══════════════════════════════════════════════════════════════
-let sel={race:null,cls:null,stats:null};
+let sel={race:null,cls:null,stats:null,gender:null};
 function buildCreate(){
+  const gg=document.getElementById('gender-grid');
+  gg.innerHTML='';
+  [{id:'m',label:'Male',emoji:'♂',face:'👨'},{id:'f',label:'Female',emoji:'♀',face:'👩'}].forEach(g=>{
+    const d=document.createElement('div');d.className='pcard';
+    d.innerHTML=`<div class="pemo">${g.face}</div><h4>${g.label} ${g.emoji}</h4><p>Choose your hero's look.</p>`;
+    d.onclick=()=>{sel.gender=g.id;gg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updateSummary();};
+    gg.appendChild(d);
+  });
   const rg=document.getElementById('race-grid');
   rg.innerHTML='';
   RACES.forEach(r=>{
@@ -2706,6 +2743,7 @@ function updateSummary(){
 const FEAT_NAMES={second_wind:'Second Wind',action_surge:'Action Surge',extra_attack:'Extra Attack',rage:'Rage',reckless:'Reckless Attack',sneak_attack:'Sneak Attack',cunning_dash:'Cunning Action',evasion:'Evasion',hunters_mark:"Hunter's Mark",volley:'Volley',arcane_recovery:'Arcane Recovery',turn_undead:'Turn Undead',channel_heal:'Channel Divinity',divine_smite:'Divine Smite',lay_on_hands:'Lay on Hands',aura:'Aura of Protection'};
 
 function startGame(){
+  if(!sel.gender){alert('Choose male or female!');return;}
   if(!sel.race){alert('Choose a lineage!');return;}
   if(!sel.cls){alert('Choose a class!');return;}
   const stats=applyStats();
@@ -2713,6 +2751,8 @@ function startGame(){
   const maxHp=sel.cls.hd+mod(stats.con)+(sel.race.id==='dwarf'?2:0);
   G={
     name,race:sel.race,cls:sel.cls,stats,
+    gender:sel.gender,
+    emoji:sel.gender==='f'?(sel.race.f||sel.race.emoji):(sel.race.m||sel.race.emoji),
     level:1,xp:0,gold:rnd(10)+5,
     classLevels:{[sel.cls.id]:1},
     hd:sel.cls.hd,prim:sel.cls.prim,
