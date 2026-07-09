@@ -199,7 +199,10 @@ button{font-family:inherit}
     <p class="tag">Descend ten floors of a cursed dungeon. Roll the dice, brave the dark, and slay the Dread Lich Vol'tharix before he drains the world of life.</p>
     <button class="btn" id="btn-begin" style="margin-top:8px">⚔ Forge a Hero</button>
     <button class="btn btn-green" id="btn-continue" style="display:none">▶ Continue</button>
-    <button class="btn btn-sm" id="btn-hall">🏆 Hall of Legends</button>
+    <div class="row" style="justify-content:center;gap:10px">
+      <button class="btn btn-sm btn-blue" id="btn-daily">📅 Daily Challenge</button>
+      <button class="btn btn-sm" id="btn-hall">🏆 Hall of Legends</button>
+    </div>
   </div>
 </section>
 
@@ -216,6 +219,11 @@ button{font-family:inherit}
   <div class="csec">
     <h3>⚧ Identity</h3>
     <div class="pick-grid" id="gender-grid" style="grid-template-columns:repeat(2,1fr)"></div>
+  </div>
+
+  <div class="csec">
+    <h3>☠ Difficulty</h3>
+    <div class="pick-grid" id="diff-grid" style="grid-template-columns:repeat(3,1fr)"></div>
   </div>
 
   <div class="csec">
@@ -276,6 +284,14 @@ button{font-family:inherit}
 <script>
 "use strict";
 // ═══════════════════════════════════════════════════════════════
+//  SEEDABLE RNG — Daily Challenge gives everyone the same dungeon
+// ═══════════════════════════════════════════════════════════════
+let RAND=Math.random;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function srand(seed){RAND=mulberry32(seed>>>0);}
+function todaySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
+
+// ═══════════════════════════════════════════════════════════════
 //  SOUND ENGINE (synthesized — no external files)
 // ═══════════════════════════════════════════════════════════════
 let AC=null,masterGain=null,soundOn=true;
@@ -300,7 +316,7 @@ function noise(dur,vol=0.3,filterFreq=1000,delay=0){
   const len=Math.floor(AC.sampleRate*dur);
   const buf=AC.createBuffer(1,len,AC.sampleRate);
   const data=buf.getChannelData(0);
-  for(let i=0;i<len;i++)data[i]=Math.random()*2-1;
+  for(let i=0;i<len;i++)data[i]=RAND()*2-1;
   const n=AC.createBufferSource();n.buffer=buf;
   const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=filterFreq;
   const g=AC.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
@@ -345,7 +361,7 @@ function playAmbience(){
   }else if(t==='Fungal Depths'){ // wet squelch & spore puff
     tone(600,0.13,'sine',0.05,180); noise(0.07,0.028,900,0.06);
   }else if(t==='Ember Reaches'){ // fire crackle
-    for(let i=0;i<3;i++)noise(0.03,0.05,2600,i*0.07+Math.random()*0.05);
+    for(let i=0;i<3;i++)noise(0.03,0.05,2600,i*0.07+RAND()*0.05);
   }else{ // Necropolis — a faint mournful wail
     tone(196,1.5,'sine',0.032,150); tone(294,1.2,'sine',0.02,240,0.35);
   }
@@ -424,7 +440,7 @@ const SHOP_STOCK=[
   {name:'Wooden Shield',price:35},{name:'Tower Shield',price:80},{name:'Iron Helm',price:30},{name:'Dragonbone Helm',price:110},
   {name:'Leather Boots',price:30},{name:'Elven Boots',price:70},{name:'Ring of Regeneration',price:130},
 ];
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(RAND()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 
 // Monsters with 5e-flavored stats. ac, hpDie roll, attack bonus, dmg, abilities/saves
 const MONSTERS={
@@ -455,6 +471,30 @@ const MONSTERS={
 // boss dragons & the lich render LARGE with a boss health bar
 for(const k in MONSTERS){if(MONSTERS[k].boss&&/dragon/i.test(MONSTERS[k].name))MONSTERS[k].big=true;}
 MONSTERS.lich.big=true;
+
+// ── ELITE AFFIXES: champion monsters with a twist and better loot ──
+const AFFIXES={
+  swift:{label:'Swift',col:'#5dade2',desc:'moves twice'},
+  vampiric:{label:'Vampiric',col:'#c0392b',desc:'heals from its hits'},
+  blazing:{label:'Blazing',col:'#e67e22',desc:'+1d4 fire on hit, fire resist'},
+  frozen:{label:'Frostbound',col:'#aed6f1',desc:'+1d4 frost on hit'},
+  regen:{label:'Regenerating',col:'#27ae60',desc:'regenerates 2/turn'},
+  shielded:{label:'Shielded',col:'#f0d472',desc:'+3 AC'},
+  explosive:{label:'Volatile',col:'#a04000',desc:'explodes on death'},
+};
+function makeElite(e){
+  const keys=Object.keys(AFFIXES);
+  const a=keys[rnd(keys.length)-1];
+  e.elite=a;
+  e.name=AFFIXES[a].label+' '+e.name;
+  e.hp=Math.floor(e.hp*1.4);e.maxHp=e.hp;
+  e.xp=Math.floor(e.xp*2);e.atk+=1;
+  if(a==='vampiric')e.lifeSteal=true;
+  if(a==='regen')e.regen=(e.regen||0)+2;
+  if(a==='shielded')e.ac+=3;
+  if(a==='blazing')e.fireResist=true;
+}
+const ELITE_GEAR=['Chain Shirt','Wooden Shield','Tower Shield','Iron Helm','Dragonbone Helm','Leather Boots','Elven Boots','Cloak of Bats','Ring of Protection','Ring of Regeneration','Amulet of Health','Flametongue','Frost Brand','Longbow +1','Greataxe +1'];
 
 // floor → monster pool (ids) and counts
 function floorPool(f){
@@ -525,11 +565,12 @@ function makeVariant(base,rarity){
   return name;
 }
 function rollRarity(floor){
-  const r=Math.random()*100;
+  const r=RAND()*100;
   const legend=2+floor*1.3,rare=12+floor*2.5;
   return r<legend?'legendary':r<legend+rare?'rare':'common';
 }
 function lootName(base,floor){
+  if(base==='Vial of Revive'&&G.diff==='hard')return 'Greater Potion'; // no revives in Hardcore
   const it=ITEMS[base];
   if(!it||!it.slot)return base;      // only gear rolls rarity
   return makeVariant(base,rollRarity(floor||1));
@@ -696,7 +737,15 @@ function los(x0,y0,x1,y1){
 // ═══════════════════════════════════════════════════════════════
 let G={};                 // player character
 let MAP=[],ROOMS=[],EXPLORED=[],VIS=[];
-let ENEMIES=[],ITEMS_ON=[],PARTICLES=[],FLOATERS=[],DECOR=[],STAINS=[],MOTES=[];
+let ENEMIES=[],ITEMS_ON=[],PARTICLES=[],FLOATERS=[],DECOR=[],STAINS=[],MOTES=[],TRAPS=[],GHOSTS=[];
+// hidden floor traps — spot them with Wisdom, disarm them with Dexterity
+const TRAP_TYPES={
+  spike:{glyph:'▲',col:'#c0392b',dmg:'2d6',dtype:'physical',msg:'Spikes burst from the floor'},
+  flame:{glyph:'♨',col:'#e67e22',dmg:'2d8',dtype:'fire',msg:'A fire rune erupts'},
+  frost:{glyph:'❄',col:'#aed6f1',dmg:'1d8',dtype:'frost',chill:true,msg:'Freezing mist blasts upward'},
+  gas:{glyph:'☁',col:'#27ae60',dmg:'1d6',dtype:'poison',poison:true,msg:'Poison gas hisses from a vent'},
+};
+function trapAt(x,y){return TRAPS.find(t=>t.x===x&&t.y===y&&!t.disarmed);}
 let canvas,ctx,fx,fxc,mini,minic;
 let camX=0,camY=0,tCamX=0,tCamY=0;
 let busy=false;           // animating / locked input
@@ -708,7 +757,7 @@ let lastTime=0;
 // ═══════════════════════════════════════════════════════════════
 //  DICE / MATH
 // ═══════════════════════════════════════════════════════════════
-function rnd(n){return Math.floor(Math.random()*n)+1;}
+function rnd(n){return Math.floor(RAND()*n)+1;}
 function mod(s){return Math.floor((s-10)/2);}
 function dist(a,b){return Math.max(Math.abs(a.x-b.x),Math.abs(a.y-b.y));} // chebyshev (8-dir adjacency)
 function mdist(a,b){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);}
@@ -800,6 +849,83 @@ function checkSpeakers(){
     if(VIS[e.y]&&VIS[e.y][e.x]&&dist(e,G)<=7){e.spoke=true;startDialogue(e.speech);}
   });
 }
+// ── TRAPS ──
+// passive Perception: one WIS check per trap as you come near
+function checkTraps(){
+  TRAPS.forEach(t=>{
+    if(t.revealed||t.checked||t.disarmed)return;
+    if(Math.max(Math.abs(t.x-G.x),Math.abs(t.y-G.y))>2)return;
+    if(!VIS[t.y]||!VIS[t.y][t.x])return;
+    t.checked=true;
+    const dc=11+Math.floor(G.floor/2);
+    if(rnd(20)+mod(G.stats.wis)>=dc){
+      t.revealed=true;sfx('click');
+      spawnText(t.x,t.y,'TRAP!','#f5b041',14);
+      msg(`${G.name}'s keen eyes spot a hidden ${t.type} trap!`,'warn');
+    }
+  });
+}
+function triggerTrap(t){
+  const def=TRAP_TYPES[t.type];
+  t.revealed=true;t.disarmed=true; // single-use
+  let d=roll(def.dmg);
+  if(rollSavePlayer('dex',12+Math.floor(G.floor/2))){d=Math.floor(d/2);msg(`${def.msg} — you twist aside! ${d} damage.`,'warn');}
+  else msg(`${def.msg} — ${d} damage!`,'warn');
+  if(def.dtype==='fire'&&G.fireResist)d=Math.floor(d/2);
+  sfx('hit');shake=Math.max(shake,7);
+  spawnExplosion(t.x,t.y,1,def.col);
+  damagePlayer(d);
+  if(def.poison&&G.race.id!=='dwarf'&&G.hp>0){G.poisonT=3;addCond('Poisoned','#27ae60');msg('Poison seeps into your veins!','warn');}
+  if(def.chill&&G.hp>0){G.stunnedT=1;msg('The cold locks your joints — you lose a turn!','warn');addCond('Stunned','#aed6f1');}
+}
+function disarmTrap(t){
+  if(busy||gameOver||DLG)return;
+  busy=true;
+  const d20=rnd(20),b=mod(G.stats.dex)+profBonus(G.level),tot=d20+b;
+  const dc=12+Math.floor(G.floor/2);
+  showDice([{sides:20,val:d20,label:'DEX',crit:d20===20,fail:d20===1}],
+    `${d20} + ${b} = ${tot} vs DC ${dc} — ${tot>=dc?'Disarmed!':'Triggered!'}`,tot>=dc?'crit':'fail',()=>{
+    if(tot>=dc){
+      t.disarmed=true;G.xp+=25;
+      msg('Trap carefully disarmed. +25 XP.','loot');sfx('gold');
+      spawnText(t.x,t.y,'+25 XP','#f0d472',13);
+      checkLevelUp();
+    }else{
+      triggerTrap(t); // fumbled it — right in your face
+    }
+    endPlayerTurn();
+  });
+}
+// monsters blunder into traps too — lure them!
+function enemyTrapCheck(e){
+  const t=trapAt(e.x,e.y);
+  if(!t)return;
+  t.revealed=true;t.disarmed=true;
+  const def=TRAP_TYPES[t.type];
+  const d=roll(def.dmg);
+  if(VIS[e.y]&&VIS[e.y][e.x]){
+    msg(`The ${e.name} stumbles into a ${t.type} trap — ${d} damage!`,'loot');
+    spawnExplosion(t.x,t.y,1,def.col);
+  }
+  damageEnemy(e,d,def.dtype);
+}
+function drawTraps(){
+  TRAPS.forEach(t=>{
+    if(!t.revealed||t.disarmed)return;
+    if(!EXPLORED[t.y]||!EXPLORED[t.y][t.x])return;
+    const vis=VIS[t.y]&&VIS[t.y][t.x];
+    const def=TRAP_TYPES[t.type];
+    const px=t.x*TS+TS/2,py=t.y*TS+TS/2;
+    ctx.globalAlpha=(vis?0.9:0.4)*(0.75+0.25*Math.sin(torchPhase*3+t.x));
+    ctx.font='13px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=def.col;
+    ctx.fillText(def.glyph,px,py+2);
+    ctx.strokeStyle=def.col;ctx.lineWidth=1;ctx.globalAlpha*=0.5;
+    ctx.strokeRect(t.x*TS+3.5,t.y*TS+3.5,TS-7,TS-7);
+    ctx.globalAlpha=1;
+  });
+}
+
 // the hero is very brave. the hero screams anyway.
 function checkDragonFright(){
   ENEMIES.forEach(e=>{
@@ -820,14 +946,14 @@ function spawnText(tx,ty,text,col,size=18){
 }
 function spawnParticle(tx,ty,col,n=8,spread=1.4){
   for(let i=0;i<n;i++){
-    const a=Math.random()*Math.PI*2,s=Math.random()*spread+.3;
-    PARTICLES.push({x:tx*TS+TS/2,y:ty*TS+TS/2,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,col,r:Math.random()*3+1.5});
+    const a=RAND()*Math.PI*2,s=RAND()*spread+.3;
+    PARTICLES.push({x:tx*TS+TS/2,y:ty*TS+TS/2,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,col,r:RAND()*3+1.5});
   }
 }
 function spawnExplosion(tx,ty,radius,col){
   spawnParticle(tx,ty,col,40,3.2);
-  for(let i=0;i<14;i++){const a=Math.random()*Math.PI*2,s=Math.random()*radius*1.5;
-    PARTICLES.push({x:tx*TS+TS/2+Math.cos(a)*s*TS*.4,y:ty*TS+TS/2+Math.sin(a)*s*TS*.4,vx:0,vy:-.3,life:1.2,col,r:Math.random()*5+3});}
+  for(let i=0;i<14;i++){const a=RAND()*Math.PI*2,s=RAND()*radius*1.5;
+    PARTICLES.push({x:tx*TS+TS/2+Math.cos(a)*s*TS*.4,y:ty*TS+TS/2+Math.sin(a)*s*TS*.4,vx:0,vy:-.3,life:1.2,col,r:RAND()*5+3});}
   shake=Math.max(shake,10);
 }
 
@@ -884,11 +1010,11 @@ function setBonuses(){
   return {ac:rare+leg*2,save:rare+leg*2,atk:leg};
 }
 function playerAC(){
-  let ac=G.armor+Math.min(mod(G.stats.dex),G.dexCap)+(G.bonusAC||0)+(G.shieldAC||0)+setBonuses().ac;
+  let ac=G.armor+Math.min(mod(G.stats.dex),G.dexCap)+(G.bonusAC||0)+(G.shieldAC||0)+setBonuses().ac+(G.featWarding?1:0);
   if(G.raging&&G.cls.id==='barbarian')ac+=mod(G.stats.con); // unarmored defense flavor
   return ac;
 }
-function spellDC(c){return 8+profBonus(c.level)+mod(c.stats[c.sAbil||c.prim]);}
+function spellDC(c){return 8+profBonus(c.level)+mod(c.stats[c.sAbil||c.prim])+(c.featArcane?1:0);}
 function rollSave(target,abil,dc){
   const b=(target.save&&target.save[abil])||0;
   return rnd(20)+b>=dc;
@@ -929,6 +1055,7 @@ function resolvePlayerDamage(e,crit,w,extra){
   if(G.blessTurns>0&&false){} // bless is to-hit
   // hunter's mark
   if(e.marked)dmg+=roll('1d6');
+  if(G.featBrute)dmg+=2;
   // sneak attack: scales with rogue level, doubled vs sleeping foes
   if(hasFeat('sneak_attack')){
     const sd=Math.ceil(classLevel('rogue')/2)||1;
@@ -944,6 +1071,7 @@ function resolvePlayerDamage(e,crit,w,extra){
     msg(`Divine Smite sears the ${e.name} for ${smite}!`,'magic');
   }
   dmg=Math.max(1,dmg);
+  if(crit){hitStop=6;critFlash=0.35;} // freeze-frame + screen flash on crits
   sfx(crit?'crit':'hit');
   if(e.asleep){e.asleep=false;} // waking on hit (unless sneak already doubled)
   msg(`${G.name} ${crit?'CRITICALLY ':''}hits the ${e.name} for ${dmg}!`,crit?'crit':'hit');
@@ -979,10 +1107,11 @@ function damageEnemy(e,dmg,type){
 function killEnemy(e){
   e.dead=true;
   G.kills=(G.kills||0)+1;
+  GHOSTS.push({glyph:e.glyph,x:e.x,y:e.y,t:1,big:e.big});
   spawnParticle(e.x,e.y,e.col,24,2.4);
   spawnText(e.x,e.y,'☠','#fff',26);
   // permanent blood stain where it fell
-  STAINS.push({x:e.x,y:e.y,h:Math.random()});
+  STAINS.push({x:e.x,y:e.y,h:RAND()});
   if(STAINS.length>90)STAINS.shift();
   const gold=e.gold[0]+rnd(Math.max(1,e.gold[1]-e.gold[0]+1))-1;
   G.gold+=gold;
@@ -995,8 +1124,18 @@ function killEnemy(e){
     spawnExplosion(e.x,e.y,2,'#f0d472');
     msg('The Treasure Goblin bursts into a shower of riches!','loot');
   }
-  if(e.loot&&Math.random()<.6){dropItem(e.x,e.y,lootName(e.loot,G.floor));}
-  else if(Math.random()<.25){dropItem(e.x,e.y,Math.random()<.5?'Health Potion':'Scroll of Healing');}
+  // elite champions: death rattle + guaranteed quality drop
+  if(e.elite){
+    if(e.elite==='explosive'){
+      const bd=roll('3d6');
+      spawnExplosion(e.x,e.y,2,'#e67e22');sfx('fire');
+      if(dist(e,G)<=2&&G.hp>0){msg(`The ${e.name} EXPLODES for ${bd}!`,'warn');damagePlayer(bd);}
+      ENEMIES.forEach(o=>{if(o!==e&&!o.dead&&dist(o,e)<=2)damageEnemy(o,bd,'fire');});
+    }
+    dropNear(e.x,e.y,lootName(ELITE_GEAR[rnd(ELITE_GEAR.length)-1],G.floor+3));
+  }
+  if(e.loot&&RAND()<.6){dropItem(e.x,e.y,lootName(e.loot,G.floor));}
+  else if(RAND()<.25){dropItem(e.x,e.y,RAND()<.5?'Health Potion':'Scroll of Healing');}
   if(e.finalBoss){setTimeout(()=>victory(),900);return;}
   ENEMIES=ENEMIES.filter(x=>!x.dead);
   checkLevelUp();
@@ -1062,11 +1201,11 @@ function enemiesAct(){
       step();return;
     }
     if(!VIS[e.y]||!VIS[e.y][e.x]){ // wander if not seen
-      if(Math.random()<.4)enemyWander(e);
+      if(RAND()<.4)enemyWander(e);
       step();return;
     }
     // breath weapon (dragon) sometimes
-    if(e.breath&&mdist(e,G)<=4&&Math.random()<.4){
+    if(e.breath&&mdist(e,G)<=4&&RAND()<.4){
       const bt=e.breathType||'fire';
       let d=roll(e.breath);if(rollSavePlayer('dex',8+mod(e.save.con||3)+2))d=Math.floor(d/2);
       if(bt==='fire'&&G.fireResist)d=Math.floor(d/2);
@@ -1076,7 +1215,11 @@ function enemiesAct(){
     }
     const d=dist(e,G);
     if(d<=1){enemyAttack(e,step);return;}
-    else{enemyChase(e);step();}
+    else{
+      enemyChase(e);
+      if(e.elite==='swift'&&dist(e,G)>1)enemyChase(e); // swift champions close fast
+      step();
+    }
   }
   busy=true;step();
 }
@@ -1084,7 +1227,7 @@ function enemiesAct(){
 function enemyWander(e){
   const dirs=[[0,1],[0,-1],[1,0],[-1,0]];const d=dirs[rnd(4)-1];
   const nx=e.x+d[0],ny=e.y+d[1];
-  if(passable(nx,ny)&&!enemyAt(nx,ny)&&!(nx===G.x&&ny===G.y)){e.x=nx;e.y=ny;}
+  if(passable(nx,ny)&&!enemyAt(nx,ny)&&!(nx===G.x&&ny===G.y)){e.x=nx;e.y=ny;enemyTrapCheck(e);}
 }
 // ── DREAD LICH BOSS AI ──
 // Phase 1 (>66% HP): dread bolts & shadow blinks. Phase 2 (≤66%): raises undead servants.
@@ -1120,7 +1263,7 @@ function lichAct(e,cb){
   }
   if(d<=1){
     // sometimes blinks out of melee rather than trading blows
-    if(Math.random()<0.3){
+    if(RAND()<0.3){
       lichBlink(e);
       if(seen)msg('Vol\'tharix blinks away in a swirl of shadow!','magic');
       cb();return;
@@ -1189,7 +1332,7 @@ function enemyChase(e){
     const nd=Math.max(Math.abs(nx-G.x),Math.abs(ny-G.y));
     if(nd<bestD){bestD=nd;best=[nx,ny];}
   }
-  if(best){e.x=best[0];e.y=best[1];}
+  if(best){e.x=best[0];e.y=best[1];enemyTrapCheck(e);}
 }
 function enemyAttack(e,cb){
   let atk=rnd(20)+e.atk;
@@ -1197,8 +1340,8 @@ function enemyAttack(e,cb){
   // dodge chances
   const crit=atk-e.atk===20;
   let dodged=false;
-  if(G.race.id==='elf'&&Math.random()<.18)dodged=true;
-  if(G.dodge&&Math.random()<G.dodge)dodged=true;
+  if(G.race.id==='elf'&&RAND()<.18)dodged=true;
+  if(G.dodge&&RAND()<G.dodge)dodged=true;
   if(dodged){msg(`${G.name} deftly dodges the ${e.name}!`,'sys');spawnText(G.x,G.y,'dodge','#5dade2',14);setTimeout(cb,180);return;}
   if(!crit&&atk<ac){msg(`The ${e.name} attacks but misses (${atk} vs AC ${ac}).`,'sys');spawnText(G.x,G.y,'miss','#9b8870',14);lungeEnemy(e);setTimeout(cb,180);return;}
   let dmg=roll(e.dmg);if(crit)dmg+=roll(e.dmg);
@@ -1208,15 +1351,21 @@ function enemyAttack(e,cb){
   lungeEnemy(e);
   msg(`The ${e.name} ${crit?'CRITS ':'hits '}${G.name} for ${dmg}!`,crit?'crit':'hit');
   damagePlayer(dmg);
+  // elite elemental riders
+  if(G.hp>0&&(e.elite==='blazing'||e.elite==='frozen')){
+    const el=e.elite==='blazing'?'fire':'frost';
+    let x=roll('1d4');if(el==='fire'&&G.fireResist)x=Math.floor(x/2);
+    if(x>0){msg(`${el==='fire'?'Searing heat':'Biting frost'} burns for ${x} more!`,'hit');spawnParticle(G.x,G.y,ELEM_COL[el],8);damagePlayer(x);}
+  }
   if(e.lifeSteal&&e.hp>0&&e.hp<e.maxHp){e.hp=Math.min(e.maxHp,e.hp+Math.floor(dmg/2));spawnText(e.x,e.y,`+${Math.floor(dmg/2)}`,'#c0392b',13);}
-  if(e.stun&&Math.random()<.3&&!rollSavePlayer('con',13)){G.stunnedT=1;msg(`${G.name} is STUNNED by psychic power!`,'warn');addCond('Stunned','#9b59b6');}
+  if(e.stun&&RAND()<.3&&!rollSavePlayer('con',13)){G.stunnedT=1;msg(`${G.name} is STUNNED by psychic power!`,'warn');addCond('Stunned','#9b59b6');}
   // hellish rebuke
   if(G.race.id==='tiefling'&&G.hp>0&&e.hp>0){let r=roll('1d6');msg(`Hellish Rebuke burns the ${e.name} for ${r}!`,'magic');damageEnemy(e,r,'fire');}
   setTimeout(cb,200);
 }
 
 function rollSavePlayer(abil,dc){
-  let b=mod(G.stats[abil])+(G.saveBonus||0)+setBonuses().save;
+  let b=mod(G.stats[abil])+(G.saveBonus||0)+setBonuses().save+(G.featWarding?1:0);
   if(G.blessTurns>0)b+=roll('1d4');
   if(G.cls.feats&&G.cls.feats.includes('aura'))b+=2;
   if(G.race.id==='dwarf'&&abil==='con')b+=2;
@@ -1224,12 +1373,13 @@ function rollSavePlayer(abil,dc){
 }
 
 function damagePlayer(dmg){
+  dmg=Math.max(1,Math.round(dmg*(G.diff==='easy'?0.75:G.diff==='hard'?1.2:1)));
   if(G.tempHP>0){const a=Math.min(G.tempHP,dmg);G.tempHP-=a;dmg-=a;}
   G.hp-=dmg;shake=Math.max(shake,Math.min(12,dmg/2+3));
   sfx('enemyhit');
   spawnText(G.x,G.y,`-${dmg}`,'#ff5050',22);spawnParticle(G.x,G.y,'#e74c3c',8);
   if(G.hp<=0){
-    if((G.inv['Vial of Revive']||0)>0){
+    if(G.diff!=='hard'&&(G.inv['Vial of Revive']||0)>0){
       G.inv['Vial of Revive']--;
       G.hp=Math.max(1,Math.ceil(G.maxHp/2));
       sfx('levelup');
@@ -1305,6 +1455,10 @@ function tryMove(dx,dy){
   if(MAP[ny][nx]===T.STAIR){VIS=computeFOV(G.x,G.y);updateCamera();stairPrompt();return;}
   VIS=computeFOV(G.x,G.y);
   updateCamera();
+  // hidden traps: step on one and it fires; survive and keep moving
+  const stepped=trapAt(G.x,G.y);
+  if(stepped){triggerTrap(stepped);if(G.hp<=0)return;}
+  checkTraps();     // passive perception on nearby tiles
   checkSpeakers(); // newly-revealed bosses get their say
   if(G.dashReady){G.dashReady=false;removeCond('Dash');updateSidebar();return;} // free extra step
   endPlayerTurn();
@@ -1339,6 +1493,9 @@ function handleClick(mx,my){
     msg('Too far to strike — move closer.','sys');return;
   }
   if(MAP[wy][wx]===T.WALL)return;
+  // click an adjacent revealed trap to attempt a DEX disarm
+  const tr=TRAPS.find(t=>t.x===wx&&t.y===wy&&t.revealed&&!t.disarmed);
+  if(tr&&Math.max(Math.abs(wx-G.x),Math.abs(wy-G.y))<=1){disarmTrap(tr);return;}
   // click an adjacent interactable prop to smash/open it
   const dprop=decorAt(wx,wy);
   if(dprop&&dprop.interact&&dist({x:wx,y:wy},G)<=1){interactDecor(dprop);return;}
@@ -1355,6 +1512,7 @@ function rangedAttack(e){
     if(!crit&&(d20===1||total<e.ac)){msg(`${G.name}'s arrow misses the ${e.name}.`,'sys');spawnText(e.x,e.y,'miss','#9b8870',14);endPlayerTurn();return;}
     let dmg=roll(w.dmg);if(crit)dmg+=roll(w.dmg);dmg+=mod(G.stats[w.abil]);
     if(e.marked)dmg+=roll('1d6');
+    if(G.featBrute)dmg+=2;
     msg(`${G.name}'s arrow ${crit?'CRITS ':'strikes '}the ${e.name} for ${dmg}!`,crit?'crit':'hit');
     damageEnemy(e,dmg,'physical');
     endPlayerTurn();
@@ -1400,15 +1558,31 @@ function loadFloor(floor){
   THEME=themeFor(floor);
   // place player in first room
   const r0=ROOMS[0];G.x=r0.cx;G.y=r0.cy;G.rx=G.x;G.ry=G.y;
-  ENEMIES=[];ITEMS_ON=[];PARTICLES=[];FLOATERS=[];ANIMS=[];DECOR=[];STAINS=[];
+  ENEMIES=[];ITEMS_ON=[];PARTICLES=[];FLOATERS=[];ANIMS=[];DECOR=[];STAINS=[];TRAPS=[];GHOSTS=[];
   initMotes();
+  // lay hidden traps (never near the start)
+  {
+    const tkeys=Object.keys(TRAP_TYPES);
+    const n=2+rnd(3)+Math.floor(floor/3);
+    for(let i=0;i<n;i++){
+      for(let t=0;t<30;t++){
+        const r=ROOMS[rnd(ROOMS.length)-1];
+        const x=r.x+rnd(Math.max(1,r.w-1))-1,y=r.y+rnd(Math.max(1,r.h-1))-1;
+        if(!MAP[y]||MAP[y][x]!==T.FLOOR)continue;
+        if(Math.abs(x-G.x)+Math.abs(y-G.y)<5)continue;
+        if(trapAt(x,y))continue;
+        TRAPS.push({x,y,type:tkeys[rnd(tkeys.length)-1],revealed:false,checked:false,disarmed:false});
+        break;
+      }
+    }
+  }
   // spawn monsters (skip first room)
   if(floor===10){
     // final boss room = last room, lich at center
     const lr=ROOMS[ROOMS.length-1];
     spawnMonster('lich',lr.cx,lr.cy);
     // a few guards
-    for(let i=0;i<3;i++){const rr=ROOMS[1+rnd(ROOMS.length-2)-1];spawnMonster(Math.random()<.5?'vampire':'wraith',rr.cx+rnd(3)-2,rr.cy+rnd(3)-2);}
+    for(let i=0;i<3;i++){const rr=ROOMS[1+rnd(ROOMS.length-2)-1];spawnMonster(RAND()<.5?'vampire':'wraith',rr.cx+rnd(3)-2,rr.cy+rnd(3)-2);}
   }else{
     const pool=floorPool(floor);
     const count=Math.min(4+floor,ROOMS.length-1+3);
@@ -1416,7 +1590,11 @@ function loadFloor(floor){
       const r=ROOMS[1+rnd(ROOMS.length-1)-1];if(!r)continue;
       const id=pool[rnd(pool.length)-1];
       let x=r.x+rnd(r.w)-1,y=r.y+rnd(r.h)-1;
-      if(passable(x,y)&&!enemyAt(x,y)&&!(x===G.x&&y===G.y))spawnMonster(id,x,y);
+      if(passable(x,y)&&!enemyAt(x,y)&&!(x===G.x&&y===G.y)){
+        spawnMonster(id,x,y);
+        const m=ENEMIES[ENEMIES.length-1];
+        if(!m.boss&&RAND()<0.15)makeElite(m); // ~15% champions
+      }
     }
     // treasure
     const tcount=2+rnd(3);
@@ -1453,18 +1631,35 @@ function loadFloor(floor){
     }
   }
   // rare treasure goblin sighting
-  if(floor>=2&&floor<10&&Math.random()<0.18){
+  if(floor>=2&&floor<10&&RAND()<0.18){
     const r=ROOMS[1+rnd(ROOMS.length-1)-1];
     if(r&&passable(r.cx,r.cy)&&!enemyAt(r.cx,r.cy))spawnMonster('tgoblin',r.cx,r.cy);
   }
   placeDecor(floor);
   // a chained prisoner may be languishing somewhere (floors 2–9)
-  if(floor>=2&&floor<10&&Math.random()<0.25){
+  if(floor>=2&&floor<10&&RAND()<0.25){
     for(let t=0;t<20;t++){
       const r=ROOMS[1+rnd(ROOMS.length-1)-1];if(!r)break;
       const x=r.x+rnd(Math.max(1,r.w-2)),y=r.y+rnd(Math.max(1,r.h-2));
       if(MAP[y]&&MAP[y][x]===T.FLOOR&&passable(x,y)&&!enemyAt(x,y)&&!decorAt(x,y)&&!(x===G.x&&y===G.y)&&!ITEMS_ON.some(i=>i.x===x&&i.y===y)){
         DECOR.push({x,y,type:'prisoner',glyph:'🧎',solid:true,interact:'rescue',light:true,lcol:[170,190,255]});
+        break;
+      }
+    }
+  }
+  // a shrine, blood altar, or golden idol may stand somewhere (one per floor, 60%)
+  if(floor<10&&RAND()<0.6){
+    const SHRINE_DEFS=[
+      {type:'shrine',glyph:'⛩️',interact:'shrine',lcol:[190,160,255]},
+      {type:'altar',glyph:'⚱️',interact:'altar',lcol:[255,90,90]},
+      {type:'idol',glyph:'🛕',interact:'idol',lcol:[255,215,110]},
+    ];
+    const sd=SHRINE_DEFS[rnd(3)-1];
+    for(let t=0;t<20;t++){
+      const r=ROOMS[1+rnd(ROOMS.length-1)-1];if(!r)break;
+      const x=r.x+rnd(Math.max(1,r.w-2)),y=r.y+rnd(Math.max(1,r.h-2));
+      if(MAP[y]&&MAP[y][x]===T.FLOOR&&passable(x,y)&&!enemyAt(x,y)&&!decorAt(x,y)&&!trapAt(x,y)&&!(x===G.x&&y===G.y)&&!ITEMS_ON.some(i=>i.x===x&&i.y===y)){
+        DECOR.push({x,y,...sd,solid:true,light:true});
         break;
       }
     }
@@ -1485,7 +1680,8 @@ function loadFloor(floor){
 }
 function spawnMonster(id,x,y){
   const def=MONSTERS[id];
-  const hp=roll(def.hp);
+  let hp=roll(def.hp);
+  if(G.diff==='hard')hp=Math.floor(hp*1.2);
   ENEMIES.push({...def,id,x,y,rx:x,ry:y,hp,maxHp:hp,flash:0,hitShake:0,gold:def.gold});
 }
 // scatter furniture & props through the rooms (interior tiles only, so corridors stay open)
@@ -1514,6 +1710,64 @@ function dropNear(x,y,name){
   }
   ITEMS_ON.push({x,y,name});
 }
+// ── SHRINES, ALTARS & IDOLS: per-floor gambles ──
+function shrinePrompt(d){
+  busy=true;
+  const ov=document.getElementById('generic-overlay'),p=document.getElementById('generic-panel');
+  const sac=Math.max(1,Math.ceil(G.hp*0.25));
+  const cfg={
+    shrine:{title:'⛩️ Shrine of Fate',sub:'Ancient power hums in the stone. Pray… if you dare.',
+      act:`🙏 Pray <span style="margin-left:auto;font-size:.75rem;color:var(--muted)">60% blessing · 40% curse</span>`,actP:'Kneel and accept whatever the fates decree.'},
+    altar:{title:'⚱️ Blood Altar',sub:'The basin thirsts. Great gifts for great pain.',
+      act:`🩸 Offer your blood <span style="margin-left:auto;color:#ff8b7d">−${sac} HP</span>`,actP:'Sacrifice a quarter of your life for a treasure of power.'},
+    idol:{title:'🛕 Golden Idol',sub:'Its jeweled eyes follow your coin purse.',
+      act:`🪙 Donate <span style="margin-left:auto;color:#f0d472">50g</span>`,actP:`Tribute buys favor: experience${G.gold<50?' (you cannot afford it)':''}.`},
+  }[d.interact];
+  p.innerHTML=`<h2>${cfg.title}</h2><div class="psub">${cfg.sub}</div><div class="choice-list">
+    <div class="choice" data-sh="use" ${d.interact==='idol'&&G.gold<50?'style="opacity:.45;pointer-events:none"':''}><h4>${cfg.act}</h4><p>${cfg.actP}</p></div>
+    <div class="choice" data-sh="leave"><h4>🚶 Leave it be</h4><p>Some powers are better left sleeping.</p></div>
+  </div>`;
+  ov.classList.add('open');
+  p.querySelectorAll('[data-sh]').forEach(el=>el.onclick=()=>{
+    closeGeneric();
+    if(el.dataset.sh==='leave'){busy=false;return;}
+    resolveShrine(d);
+  });
+}
+function resolveShrine(d){
+  DECOR=DECOR.filter(p2=>p2!==d); // one use, then it crumbles
+  spawnParticle(d.x,d.y,'#d7a8e8',18,2.2);
+  if(d.interact==='shrine'){
+    if(RAND()<0.6){ // blessing
+      const b=rnd(4);sfx('heal');
+      if(b===1){G.hp=G.maxHp;msg('⛩️ Warm light knits your wounds — fully healed!','heal');}
+      else if(b===2){G.blessTurns=Math.max(G.blessTurns,15);msg('⛩️ You are blessed! (+1d4 attacks & saves, 15 turns)','magic');}
+      else if(b===3){const g=40+rnd(40)+G.floor*5;G.gold+=g;msg(`⛩️ Gold materializes at your feet: +${g}g!`,'loot');}
+      else{G.slots=G.maxSlots;const xg=G.floor*25;G.xp+=xg;msg(`⛩️ Arcane clarity: spell slots restored, +${xg} XP!`,'magic');checkLevelUp();}
+    }else{ // curse
+      const c=rnd(3);sfx('death');shake=Math.max(shake,8);
+      if(c===1){const lost=Math.floor(G.gold*0.2);G.gold-=lost;msg(`⛩️ The shrine CURSES you — ${lost}g crumbles to ash!`,'warn');}
+      else if(c===2&&G.race.id!=='dwarf'){G.poisonT=3;addCond('Poisoned','#27ae60');msg('⛩️ Foul vapors pour out — you are poisoned!','warn');}
+      else{spawnMonster('wraith',d.x,d.y);ENEMIES[ENEMIES.length-1].justSummoned=true;msg('⛩️ A wraith tears free of the shrine!','warn');}
+    }
+  }else if(d.interact==='altar'){
+    const sac=Math.max(1,Math.ceil(G.hp*0.25));
+    G.hp=Math.max(1,G.hp-sac);sfx('hit');shake=Math.max(shake,6);
+    spawnText(G.x,G.y,`-${sac}`,'#ff5050',20);
+    const gift=lootName(ELITE_GEAR[rnd(ELITE_GEAR.length)-1],G.floor+4);
+    G.inv[gift]=(G.inv[gift]||0)+1;
+    msg(`⚱️ The altar drinks deep (−${sac} HP)… and yields a ${gift}!`,'loot');sfx('gold');
+  }else{ // idol
+    G.gold-=50;sfx('buy');
+    const xg=G.floor*40;G.xp+=xg;
+    msg(`🛕 The idol's eyes glow — +${xg} XP!`,'loot');
+    if(RAND()<0.3){G.blessTurns=Math.max(G.blessTurns,10);msg('It is pleased: you are blessed!','magic');}
+    checkLevelUp();
+  }
+  updateSidebar();
+  endPlayerTurn();
+}
+
 // ── THE CHAINED PRISONER: dialogue, a choice, and maybe a nasty surprise ──
 function prisonerEncounter(d){
   startDialogue([
@@ -1536,7 +1790,7 @@ function resolveRescue(d,choice){
     return;
   }
   // some "prisoners" are hungry things wearing a face (one in five)
-  if(d.isDoppel===undefined)d.isDoppel=Math.random()<0.2;
+  if(d.isDoppel===undefined)d.isDoppel=RAND()<0.2;
   if(d.isDoppel){
     DECOR=DECOR.filter(p2=>p2!==d);
     spawnMonster('wraith',d.x,d.y);
@@ -1585,12 +1839,13 @@ function freePrisoner(d,extorted,angry){
 function interactDecor(d){
   if(busy||gameOver||DLG)return;
   if(d.interact==='rescue'){prisonerEncounter(d);return;}
+  if(d.interact==='shrine'||d.interact==='altar'||d.interact==='idol'){shrinePrompt(d);return;}
   busy=true;
   const {x,y}=d;
   DECOR=DECOR.filter(p=>p!==d); // tile is now walkable
   if(d.interact==='open'){
     // chests: usually treasure, sometimes a lurking Mimic
-    if(Math.random()<0.15){
+    if(RAND()<0.15){
       spawnMonster('mimic',x,y);sfx('crit');shake=Math.max(shake,9);
       spawnParticle(x,y,'#c0392b',22,2.6);spawnText(x,y,'IT\'S A MIMIC!','#ff9b8d',15);
       msg('The chest lunges — it was a MIMIC!','warn');
@@ -1609,13 +1864,13 @@ function interactDecor(d){
     spawnParticle(x,y,'#9b8870',18,2.2);spawnText(x,y,'SMASH!','#ff9b8d',15);
     msg(`You smash the ${d.type}!`,'sys');
     // coffins sometimes disgorge undead
-    if(d.type==='coffin'&&Math.random()<0.3){
-      spawnMonster(Math.random()<0.5?'skeleton':'zombie',x,y);sfx('enemyhit');
+    if(d.type==='coffin'&&RAND()<0.3){
+      spawnMonster(RAND()<0.5?'skeleton':'zombie',x,y);sfx('enemyhit');
       spawnText(x,y,'☠ RISEN','#d7d0c0',14);msg('Something claws out of the coffin!','warn');
       endPlayerTurn();return;
     }
-    if(Math.random()<0.5){const g=rnd(8)+G.floor;G.gold+=g;spawnText(x,y-0.4,'+'+g+'g','#c9a227',13);}
-    if(Math.random()<0.4){const minor=['Health Potion','Health Potion','Antidote','Greater Potion','Scroll of Healing'];dropNear(x,y,minor[rnd(minor.length)-1]);}
+    if(RAND()<0.5){const g=rnd(8)+G.floor;G.gold+=g;spawnText(x,y-0.4,'+'+g+'g','#c9a227',13);}
+    if(RAND()<0.4){const minor=['Health Potion','Health Potion','Antidote','Greater Potion','Scroll of Healing'];dropNear(x,y,minor[rnd(minor.length)-1]);}
   }
   updateSidebar();
   endPlayerTurn();
@@ -1660,8 +1915,8 @@ function showShop(cb){
     return;
   }
   sfx('shop');
-  // the merchant always carries a Vial of Revive plus 6 rotating wares
-  const stock=[{name:'Vial of Revive',price:90},...shuffle(SHOP_STOCK.map(s=>({...s}))).slice(0,6).sort((a,b)=>a.price-b.price)];
+  // the merchant always carries a Vial of Revive plus 6 rotating wares (no vials in Hardcore)
+  const stock=[...(G.diff==='hard'?[]:[{name:'Vial of Revive',price:90}]),...shuffle(SHOP_STOCK.map(s=>({...s}))).slice(0,6).sort((a,b)=>a.price-b.price)];
   const ov=document.getElementById('generic-overlay'),p=document.getElementById('generic-panel');
   p.style.borderColor='#c9a227';
   function render(){
@@ -1759,7 +2014,7 @@ function applyClassLevel(id){
   const cl=CLASS_BY_ID[id],isNew=!G.classLevels[id];
   G.classLevels[id]=(G.classLevels[id]||0)+1;
   G.level++;
-  const hpGain=Math.max(1,Math.floor(cl.hd/2)+1+mod(G.stats.con)+(G.race.id==='dwarf'?2:0));
+  const hpGain=Math.max(1,Math.floor(cl.hd/2)+1+mod(G.stats.con)+(G.race.id==='dwarf'?2:0)+(G.featTough?2:0));
   G.maxHp+=hpGain;G.hp+=hpGain;
   if(cl.spells){
     if(!G.spells)G.spells=[];
@@ -1771,9 +2026,58 @@ function applyClassLevel(id){
   resetClassUses();
   msg(`✦ ${G.name} ${isNew?'multiclasses into '+cl.name:'gains a level of '+cl.name}! +${hpGain} max HP.`,'loot');
   if(isNew&&cl.spells)msg(`Learned: ${cl.spells.join(', ')}.`,'magic');
-  if(G.xp>=lvlXP(G.level))setTimeout(openLevelUp,250);
-  else busy=false;
-  updateSidebar();
+  const next=()=>{
+    if(G.xp>=lvlXP(G.level))setTimeout(openLevelUp,250);
+    else busy=false;
+    updateSidebar();
+  };
+  // levels 4 & 8: Ability Score Improvement or a feat (5e style)
+  if(G.level===4||G.level===8)setTimeout(()=>openASI(next),300);
+  else next();
+}
+
+// ── ASI / FEATS ──
+const HERO_FEATS={
+  tough:{name:'Tough',emoji:'💪',desc:'+2 max HP per level, now and forever.'},
+  brute:{name:'Brute',emoji:'⚔️',desc:'+2 damage on all weapon attacks.'},
+  warding:{name:'Warding',emoji:'🛡️',desc:'+1 AC and +1 to all saving throws.'},
+  arcane:{name:'Arcane Adept',emoji:'✨',desc:'+1 spell save DC & +1 max spell slot.'},
+};
+function openASI(cb){
+  busy=true;
+  const ov=document.getElementById('generic-overlay'),p=document.getElementById('generic-panel');
+  let html=`<h2>✦ Level ${G.level}: Greater Power</h2><div class="psub">Raise an ability score, or take a feat</div><div class="choice-list">`;
+  STAT_NAMES.forEach(s=>{
+    const v=G.stats[s],maxed=v>=20;
+    html+=`<div class="choice ${maxed?'disabled':''}" data-asi="${s}" style="padding:8px 14px;${maxed?'opacity:.4;pointer-events:none':''}">
+      <h4 style="font-size:.92rem">+2 ${STAT_FULL[s]} <span style="margin-left:auto;color:#5dade2">${v} → ${Math.min(20,v+2)}</span></h4></div>`;
+  });
+  for(const k in HERO_FEATS){
+    const f=HERO_FEATS[k];
+    const taken=(G.featsTaken||[]).includes(f.name);
+    html+=`<div class="choice ${taken?'disabled':''}" data-feat2="${k}" style="border-color:#7d3c98;${taken?'opacity:.4;pointer-events:none':''}">
+      <h4 style="color:#d7a8e8">${f.emoji} ${f.name}${taken?' <span style="margin-left:auto;font-size:.7rem;color:var(--muted)">taken</span>':''}</h4><p>${f.desc}</p></div>`;
+  }
+  html+='</div>';
+  p.innerHTML=html;ov.classList.add('open');
+  p.querySelectorAll('[data-asi]').forEach(el=>el.onclick=()=>{
+    const s=el.dataset.asi;
+    G.stats[s]=Math.min(20,G.stats[s]+2);
+    closeGeneric();sfx('levelup');
+    msg(`✦ ${STAT_FULL[s]} increases to ${G.stats[s]}!`,'loot');
+    if(s==='con'){const b=G.level;G.maxHp+=b;G.hp+=b;msg(`+${b} max HP from your hardier frame.`,'heal');}
+    cb();
+  });
+  p.querySelectorAll('[data-feat2]').forEach(el=>el.onclick=()=>{
+    const k=el.dataset.feat2,f=HERO_FEATS[k];
+    G.featsTaken=(G.featsTaken||[]).concat(f.name);
+    closeGeneric();sfx('levelup');
+    if(k==='tough'){G.featTough=true;const b=2*G.level;G.maxHp+=b;G.hp+=b;msg(`💪 Tough: +${b} max HP now, +2 every level after.`,'heal');}
+    if(k==='brute'){G.featBrute=true;msg('⚔️ Brute: your weapon strikes hit +2 harder.','loot');}
+    if(k==='warding'){G.featWarding=true;msg('🛡️ Warding: +1 AC, +1 saves.','loot');}
+    if(k==='arcane'){G.featArcane=true;G.maxSlots=spellSlotsFor(G);G.slots=Math.min(G.maxSlots,G.slots+1);msg('✨ Arcane Adept: +1 spell DC, +1 spell slot.','magic');}
+    cb();
+  });
 }
 function resetClassUses(){G.secondWindUsed=false;G.actionSurgeUsed=false;G.layUsed=false;G.channelUsed=false;G.breathUsed=false;}
 function lvlXP(l){return Math.floor(l*l*55+l*45);}
@@ -1781,7 +2085,7 @@ function spellSlotsFor(c){
   let casterLevels=0;
   for(const id in c.classLevels){if(CLASS_BY_ID[id].spells)casterLevels+=c.classLevels[id];}
   if(!casterLevels)return 0;
-  return Math.min(2+casterLevels,12);
+  return Math.min(2+casterLevels+(c.featArcane?1:0),13);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1803,14 +2107,15 @@ function updateCamera(){
   tCamX=G.x*TS+TS/2-canvas.width/2;
   tCamY=G.y*TS+TS/2-canvas.height/2;
 }
-let torchPhase=0,ambTimer=2500,beatTimer=0;
+let torchPhase=0,ambTimer=2500,beatTimer=0,hitStop=0,critFlash=0;
 function render(ts){
-  const dt=Math.min(40,ts-lastTime||16);lastTime=ts;
+  let dt=Math.min(40,ts-lastTime||16);lastTime=ts;
+  if(hitStop>0){hitStop--;dt=0;} // brief freeze-frame on critical hits
   torchPhase+=0.05;
   // ambient audio: biome loop + critical-HP heartbeat
   if(!gameOver){
     ambTimer-=dt;
-    if(ambTimer<=0){playAmbience();ambTimer=2600+Math.random()*3800;}
+    if(ambTimer<=0){playAmbience();ambTimer=2600+RAND()*3800;}
     if(G.maxHp&&G.hp>0&&G.hp/G.maxHp<0.25){
       beatTimer-=dt;
       if(beatTimer<=0){sfx('heartbeat');beatTimer=950;}
@@ -1819,7 +2124,7 @@ function render(ts){
   // camera lerp
   camX+=(tCamX-camX)*0.18;camY+=(tCamY-camY)*0.18;
   let sx=0,sy=0;
-  if(shake>0){sx=(Math.random()-.5)*shake;sy=(Math.random()-.5)*shake;shake*=0.86;if(shake<.3)shake=0;}
+  if(shake>0){sx=(RAND()-.5)*shake;sy=(RAND()-.5)*shake;shake*=0.86;if(shake<.3)shake=0;}
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.save();ctx.translate(-camX+sx,-camY+sy);
   // tiles
@@ -1837,6 +2142,8 @@ function render(ts){
   ENEMIES.forEach(e=>{if(e.rx===undefined){e.rx=e.x;e.ry=e.y;}e.rx+=(e.x-e.rx)*0.24;e.ry+=(e.y-e.ry)*0.24;});
   // battle scars (under everything that stands)
   drawStains();
+  // revealed traps
+  drawTraps();
   // decor / furniture (under items & creatures)
   drawDecor();
   // items
@@ -1855,6 +2162,8 @@ function render(ts){
       ctx.shadowBlur=0;
     }
   });
+  // fading ghosts of the slain
+  drawGhosts();
   // enemies
   ENEMIES.forEach(e=>{if(!e.dead)drawEnemy(e);});
   // player
@@ -1872,6 +2181,12 @@ function render(ts){
   drawLighting(sx,sy);
   drawDecorLights(sx,sy);
   drawHPGrade();
+  // crit screen flash
+  if(critFlash>0){
+    ctx.fillStyle=`rgba(255,235,180,${critFlash*0.5})`;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    critFlash=Math.max(0,critFlash-0.05);
+  }
   // boss health bar when a boss is in sight
   {
     const bb=document.getElementById('boss-bar');
@@ -1931,6 +2246,11 @@ function drawTile(x,y,vis){
     const base=h<.33?THEME.floorA:h>.66?THEME.floorB:THEME.floor;
     ctx.fillStyle=vis?base:shade(base,0.42);
     ctx.fillRect(px,py,TS,TS);
+    // ambient occlusion: soft shadows where walls meet the floor
+    ctx.fillStyle='rgba(0,0,0,.30)';
+    if(y>0&&MAP[y-1][x]===T.WALL){ctx.fillRect(px,py,TS,5);ctx.fillStyle='rgba(0,0,0,.16)';ctx.fillRect(px,py+5,TS,3);ctx.fillStyle='rgba(0,0,0,.30)';}
+    if(x>0&&MAP[y][x-1]===T.WALL){ctx.fillRect(px,py,4,TS);ctx.fillStyle='rgba(0,0,0,.14)';ctx.fillRect(px+4,py,2,TS);ctx.fillStyle='rgba(0,0,0,.30)';}
+    if(x<MW-1&&MAP[y][x+1]===T.WALL){ctx.fillRect(px+TS-4,py,4,TS);ctx.fillStyle='rgba(0,0,0,.14)';ctx.fillRect(px+TS-6,py,2,TS);ctx.fillStyle='rgba(0,0,0,.30)';}
     // grout lines
     ctx.strokeStyle=vis?'rgba(0,0,0,.28)':'rgba(0,0,0,.15)';ctx.lineWidth=1;
     ctx.strokeRect(px+.5,py+.5,TS-1,TS-1);
@@ -1987,12 +2307,19 @@ function drawEnemy(e){
   if(!VIS[e.y]||!VIS[e.y][e.x])return;
   let lx=e.lunge?e.lunge.dx*e.lunge.t*6:0, ly=e.lunge?e.lunge.dy*e.lunge.t*6:0;
   if(e.lunge){e.lunge.t-=0.14;if(e.lunge.t<=0)e.lunge=null;}
-  let hsx=0;if(e.hitShake>0){hsx=(Math.random()-.5)*e.hitShake;e.hitShake*=.8;if(e.hitShake<.5)e.hitShake=0;}
+  let hsx=0;if(e.hitShake>0){hsx=(RAND()-.5)*e.hitShake;e.hitShake*=.8;if(e.hitShake<.5)e.hitShake=0;}
   const px=(e.rx??e.x)*TS+TS/2+lx+hsx,py=(e.ry??e.y)*TS+TS/2+ly;
   const bob=e.asleep?0:Math.sin(torchPhase*2.2+e.x*1.3)*(e.big?2:1.2);
   // shadow (huge for large bosses)
   ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();
   ctx.ellipse(px,py+9,e.big?17:8,e.big?5.5:3,0,0,Math.PI*2);ctx.fill();
+  // elite champion aura ring
+  if(e.elite){
+    ctx.strokeStyle=AFFIXES[e.elite].col;ctx.lineWidth=2;
+    ctx.globalAlpha=0.55+0.3*Math.sin(torchPhase*3+e.x);
+    ctx.beginPath();ctx.arc(px,py+2,TS*0.52,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=1;
+  }
   if(e.boss||e.flees){ctx.shadowColor=e.col;ctx.shadowBlur=e.big?26:18;}
   if(e.flash>0){ctx.shadowColor='#fff';ctx.shadowBlur=20;e.flash-=.12;}
   ctx.font=(e.big?'44px':e.boss?'24px':'19px')+' serif';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -2014,10 +2341,20 @@ function drawAnims(){
   ANIMS=ANIMS.filter(a=>{
     if(a.type==='proj'){
       a.t+=0.12;
+      // fading comet trail
+      ctx.fillStyle=a.col;
+      for(let k=4;k>=1;k--){
+        const tt=Math.max(0,a.t-k*0.055);
+        const gx=(a.x+(a.tx-a.x)*tt)*TS+TS/2,gy=(a.y+(a.ty-a.y)*tt)*TS+TS/2;
+        ctx.globalAlpha=0.28-k*0.055;
+        ctx.beginPath();ctx.arc(gx,gy,3.4-k*0.55,0,Math.PI*2);ctx.fill();
+      }
+      ctx.globalAlpha=1;
       const x=(a.x+(a.tx-a.x)*a.t)*TS+TS/2;
       const y=(a.y+(a.ty-a.y)*a.t)*TS+TS/2;
-      ctx.shadowColor=a.col;ctx.shadowBlur=10;
-      ctx.fillStyle=a.col;ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      ctx.shadowColor=a.col;ctx.shadowBlur=14;
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,1.6,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=a.col;ctx.beginPath();ctx.arc(x,y,3.4,0,Math.PI*2);ctx.globalAlpha=.85;ctx.fill();ctx.globalAlpha=1;ctx.shadowBlur=0;
       if(a.t>=1){a.cb&&a.cb();return false;}
       return true;
     }
@@ -2030,7 +2367,19 @@ function drawParticles(dt){
     p.x+=p.vx*dt*0.12;p.y+=p.vy*dt*0.12;p.vy+=0.04;p.life-=0.025;
     if(p.life<=0)return false;
     ctx.globalAlpha=Math.max(0,p.life);
+    ctx.shadowColor=p.col;ctx.shadowBlur=6*p.life; // luminous embers
     ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r*p.life,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;ctx.globalAlpha=1;return true;
+  });
+}
+// slain foes fade into the floor rather than blinking away
+function drawGhosts(){
+  GHOSTS=GHOSTS.filter(g=>{
+    g.t-=0.035;
+    if(g.t<=0)return false;
+    ctx.globalAlpha=g.t*0.75;
+    ctx.font=(g.big?'44px':'19px')+' serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(g.glyph,g.x*TS+TS/2,g.y*TS+TS/2-ENT_RAISE+(1-g.t)*8);
     ctx.globalAlpha=1;return true;
   });
 }
@@ -2048,7 +2397,7 @@ function drawFloaters(dt){
 
 function initMotes(){
   MOTES=[];
-  for(let i=0;i<55;i++)MOTES.push({x:Math.random()*MW*TS,y:Math.random()*MH*TS,s:Math.random()*1.4+0.4,ph:Math.random()*Math.PI*2,sp:Math.random()*0.09+0.02});
+  for(let i=0;i<55;i++)MOTES.push({x:RAND()*MW*TS,y:RAND()*MH*TS,s:RAND()*1.4+0.4,ph:RAND()*Math.PI*2,sp:RAND()*0.09+0.02});
 }
 function drawMotes(dt){
   const amb=THEME.amb||{col:'#ffd9a0',vy:-0.03,sway:0.18,r:1};
@@ -2163,7 +2512,7 @@ function updateSidebar(){
   if(!G.cls)return;
   document.getElementById('sb-name').textContent=G.name;
   const clsStr=Object.keys(G.classLevels).map(id=>`${CLASS_BY_ID[id].name} ${G.classLevels[id]}`).join(' / ');
-  const gSym=G.gender?(G.gender==='f'?'♀ ':'♂ '):'';
+  const gSym=(G.daily?'📅 ':'')+(G.diff==='hard'?'💀 ':'')+(G.gender?(G.gender==='f'?'♀ ':'♂ '):'');
   document.getElementById('sb-meta').innerHTML=`${gSym}${G.race.name} · ${clsStr} · Lv ${G.level} · ${G.gold}🪙`;
   const body=document.getElementById('sb-body');
   const hpPct=Math.max(0,G.hp/G.maxHp*100);
@@ -2520,7 +2869,7 @@ function saveGame(){
       g:{...G,race:G.race.id,cls:G.cls.id,lunge:null},
       map:MAP,rooms:ROOMS,explored:EXPLORED,
       enemies:ENEMIES.filter(e=>!e.dead).map(e=>({...e,lunge:null})),
-      items:ITEMS_ON,decor:DECOR,stains:STAINS,extraItems:extra};
+      items:ITEMS_ON,decor:DECOR,stains:STAINS,traps:TRAPS,extraItems:extra};
     localStorage.setItem(SAVE_KEY,JSON.stringify(data));
   }catch(e){}
 }
@@ -2535,8 +2884,8 @@ function loadGame(){
     G.cls=CLASS_BY_ID[G.cls];
     if(!G.emoji)G.emoji=G.race.emoji; // saves from before gender existed
     MAP=data.map;ROOMS=data.rooms;EXPLORED=data.explored;
-    ENEMIES=data.enemies||[];ITEMS_ON=data.items||[];DECOR=data.decor||[];STAINS=data.stains||[];
-    PARTICLES=[];FLOATERS=[];ANIMS=[];
+    ENEMIES=data.enemies||[];ITEMS_ON=data.items||[];DECOR=data.decor||[];STAINS=data.stains||[];TRAPS=data.traps||[];
+    PARTICLES=[];FLOATERS=[];ANIMS=[];GHOSTS=[];
     THEME=themeFor(G.floor);initMotes();
     gameOver=false;busy=false;pendingPath=null;
     document.getElementById('s-title').style.display='none';
@@ -2563,7 +2912,7 @@ function saveRun(result){
   try{
     const runs=runsLoad();
     const clsStr=Object.keys(G.classLevels).map(id=>`${CLASS_BY_ID[id].name} ${G.classLevels[id]}`).join('/');
-    runs.unshift({n:G.name,race:G.race.name,cls:clsStr,lvl:G.level,floor:G.floor,xp:G.xp,gold:G.gold,kills:G.kills||0,result,date:new Date().toISOString().slice(0,10)});
+    runs.unshift({n:G.name,race:G.race.name,cls:clsStr,lvl:G.level,floor:G.floor,xp:G.xp,gold:G.gold,kills:G.kills||0,result,diff:G.diff||'normal',daily:!!G.daily,date:new Date().toISOString().slice(0,10)});
     localStorage.setItem('dnd_runs',JSON.stringify(runs.slice(0,20)));
   }catch(e){}
 }
@@ -2584,7 +2933,7 @@ function openHall(){
     html+=`<div class="feat-line" style="text-align:center;margin-bottom:10px">Deepest: <b>Floor ${b.depth}</b> · Most kills: <b>${b.kills}</b> · Richest: <b>${b.gold}g</b> · Victories: <b style="color:#f0d472">${b.wins}</b> of ${b.total}</div><div class="choice-list">`;
     runs.slice(0,10).forEach(r=>{
       html+=`<div class="choice" style="pointer-events:none">
-        <h4 style="color:${r.result==='won'?'#f0d472':'#ff8b7d'}">${r.result==='won'?'⚜':'☠'} ${r.n} <span style="margin-left:auto;font-size:.72rem;color:var(--muted);font-family:'Crimson Text',serif">${r.date}</span></h4>
+        <h4 style="color:${r.result==='won'?'#f0d472':'#ff8b7d'}">${r.result==='won'?'⚜':'☠'} ${r.daily?'📅 ':''}${r.diff==='hard'?'💀 ':''}${r.n} <span style="margin-left:auto;font-size:.72rem;color:var(--muted);font-family:'Crimson Text',serif">${r.date}</span></h4>
         <p>${r.race} ${r.cls} · Lv ${r.lvl} · Floor ${r.floor} · ${r.kills||0} kills · ${r.gold}g</p></div>`;
     });
     html+='</div>';
@@ -2616,7 +2965,7 @@ function openCharSheet(){
   if(G.raging)defs.push('rage: half damage');
   if(G.race.id==='dwarf')defs.push('poison resist, +2 CON saves');
   html+=`<div class="feat-line">🛡 Defenses: ${defs.length?defs.join(', '):'—'}</div>`;
-  html+=`<div class="feat-line">✦ Features: <b>${(G.activeFeats||[]).map(f=>FEAT_NAMES[f]||f).join(', ')||'—'}</b></div>`;
+  html+=`<div class="feat-line">✦ Features: <b>${(G.activeFeats||[]).map(f=>FEAT_NAMES[f]||f).concat(G.featsTaken||[]).join(', ')||'—'}</b></div>`;
   html+=`<div class="feat-line">🩸 ${G.race.trait}</div>`;
   if(G.spells&&G.spells.length)html+=`<div class="feat-line">📖 Spells: ${G.spells.join(', ')}</div>`;
   html+='<div class="sb-sec-title" style="margin-top:10px">Equipment</div>';
@@ -2668,8 +3017,21 @@ function victory(){
 // ═══════════════════════════════════════════════════════════════
 //  CHARACTER CREATION
 // ═══════════════════════════════════════════════════════════════
-let sel={race:null,cls:null,stats:null,gender:null};
+let sel={race:null,cls:null,stats:null,gender:null,diff:'normal'};
+const DIFFS=[
+  {id:'easy',label:'Easy',emoji:'🌿',desc:'Enemies hit 25% softer. Extra potions. A gentle descent.'},
+  {id:'normal',label:'Normal',emoji:'⚔️',desc:'The dungeon as intended.'},
+  {id:'hard',label:'Hardcore',emoji:'💀',desc:'Enemies +20% damage & HP. Vials of Revive do not work. One life.'},
+];
 function buildCreate(){
+  const dg=document.getElementById('diff-grid');
+  dg.innerHTML='';
+  DIFFS.forEach(d0=>{
+    const d=document.createElement('div');d.className='pcard'+(d0.id===sel.diff?' sel':'');
+    d.innerHTML=`<div class="pemo">${d0.emoji}</div><h4>${d0.label}</h4><p>${d0.desc}</p>`;
+    d.onclick=()=>{sel.diff=d0.id;dg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');};
+    dg.appendChild(d);
+  });
   const gg=document.getElementById('gender-grid');
   gg.innerHTML='';
   [{id:'m',label:'Male',emoji:'♂',face:'👨'},{id:'f',label:'Female',emoji:'♀',face:'👩'}].forEach(g=>{
@@ -2752,6 +3114,7 @@ function startGame(){
   G={
     name,race:sel.race,cls:sel.cls,stats,
     gender:sel.gender,
+    diff:sel.diff||'normal',daily:DAILY_PENDING,
     emoji:sel.gender==='f'?(sel.race.f||sel.race.emoji):(sel.race.m||sel.race.emoji),
     level:1,xp:0,gold:rnd(10)+5,
     classLevels:{[sel.cls.id]:1},
@@ -2767,6 +3130,8 @@ function startGame(){
     raging:false,secondWindUsed:false,actionSurgeUsed:false,layUsed:false,channelUsed:false,breathUsed:false,
   };
   if(sel.race.id==='human')G.inv['Health Potion']=3;
+  if(G.diff==='easy')G.inv['Health Potion']+=2;
+  if(G.diff==='hard')delete G.inv['Vial of Revive']; // no second chances
   G.equip.weapon=G.weapon.name; // class weapon occupies the weapon slot (registered in ITEMS)
   recalcFeats();
   G.maxSlots=spellSlotsFor(G);G.slots=G.maxSlots;
@@ -2832,16 +3197,16 @@ function titleBG(){
   const c=document.getElementById('title-canvas'),x=c.getContext('2d');
   function rs(){c.width=window.innerWidth;c.height=window.innerHeight;}
   rs();window.addEventListener('resize',rs);
-  const embers=[];for(let i=0;i<70;i++)embers.push({x:Math.random()*c.width,y:Math.random()*c.height,vy:-(Math.random()*.6+.2),r:Math.random()*2.2+.5,a:Math.random()*.6+.2,h:Math.random()*40+10});
+  const embers=[];for(let i=0;i<70;i++)embers.push({x:RAND()*c.width,y:RAND()*c.height,vy:-(RAND()*.6+.2),r:RAND()*2.2+.5,a:RAND()*.6+.2,h:RAND()*40+10});
   let runes=[];const glyphs='ᚠᚢᚦᚨᚱᚲᚷᛟᛞᛗᛚᛜᛒᛖ';
-  for(let i=0;i<14;i++)runes.push({x:Math.random()*c.width,y:Math.random()*c.height,g:glyphs[Math.floor(Math.random()*glyphs.length)],s:Math.random()*24+18,a:0,da:(Math.random()*.01+.003)*(Math.random()<.5?1:-1),max:Math.random()*.25+.08});
+  for(let i=0;i<14;i++)runes.push({x:RAND()*c.width,y:RAND()*c.height,g:glyphs[Math.floor(RAND()*glyphs.length)],s:RAND()*24+18,a:0,da:(RAND()*.01+.003)*(RAND()<.5?1:-1),max:RAND()*.25+.08});
   function loop(){
     if(document.getElementById('s-title').style.display==='none')return;
     x.clearRect(0,0,c.width,c.height);
     runes.forEach(r=>{r.a+=r.da;if(r.a>r.max||r.a<0){r.da*=-1;r.a=Math.max(0,Math.min(r.max,r.a));}
       x.globalAlpha=r.a;x.fillStyle='#c9a227';x.font=r.s+'px serif';x.textAlign='center';x.fillText(r.g,r.x,r.y);});
     x.globalAlpha=1;
-    embers.forEach(em=>{em.y+=em.vy;em.x+=Math.sin(em.y*.02)*.3;if(em.y<-5){em.y=c.height+5;em.x=Math.random()*c.width;}
+    embers.forEach(em=>{em.y+=em.vy;em.x+=Math.sin(em.y*.02)*.3;if(em.y<-5){em.y=c.height+5;em.x=RAND()*c.width;}
       x.globalAlpha=em.a;x.fillStyle=`hsl(${em.h},90%,60%)`;x.shadowColor=`hsl(${em.h},90%,55%)`;x.shadowBlur=8;
       x.beginPath();x.arc(em.x,em.y,em.r,0,Math.PI*2);x.fill();});
     x.globalAlpha=1;x.shadowBlur=0;
@@ -2853,7 +3218,17 @@ function titleBG(){
 // ═══════════════════════════════════════════════════════════════
 //  WIRE UP
 // ═══════════════════════════════════════════════════════════════
+let DAILY_PENDING=false;
 document.getElementById('btn-begin').onclick=()=>{
+  DAILY_PENDING=false;
+  srand((Date.now()%2147483647)>>>0);
+  document.getElementById('s-title').style.display='none';
+  document.getElementById('s-create').style.display='block';
+  buildCreate();
+};
+document.getElementById('btn-daily').onclick=()=>{
+  DAILY_PENDING=true;
+  srand(todaySeed()); // everyone gets today's dungeon
   document.getElementById('s-title').style.display='none';
   document.getElementById('s-create').style.display='block';
   buildCreate();
