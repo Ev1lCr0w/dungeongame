@@ -117,8 +117,10 @@ button{font-family:inherit}
 .feat-item .ki{font-size:1.05rem}
 .feat-item .fn{flex:1;color:var(--gold2);font-weight:600}
 .feat-item .fc{color:var(--muted);font-size:.72rem}
-.act-bar{display:flex;gap:6px;padding:9px 12px;border-top:1px solid var(--border);background:rgba(0,0,0,.25);flex-wrap:wrap}
-.act-bar .btn-sm{flex:1;min-width:0;text-align:center}
+.act-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(50px,1fr));gap:6px;padding:9px 12px;border-top:1px solid var(--border);background:rgba(0,0,0,.25)}
+.act-bar .ab{min-width:0;padding:6px 2px;font-size:.6rem;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1}
+.ab .ab-ic{font-size:1.1rem;line-height:1}
+.ab .ab-lb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
 /* Message log */
 #msg-log{position:absolute;left:14px;bottom:14px;width:min(46%,430px);max-height:34%;overflow:hidden;display:flex;flex-direction:column-reverse;gap:3px;z-index:5;pointer-events:none}
@@ -2575,22 +2577,23 @@ function updateSidebar(){
   renderActions();
 }
 
+function abBtn(id,icon,label,cls='',style=''){
+  return `<button class="btn btn-sm ab ${cls}" id="${id}"${style?` style="${style}"`:''}><span class="ab-ic">${icon}</span><span class="ab-lb">${label}</span></button>`;
+}
 function renderActions(){
   const bar=document.getElementById('act-bar');
   let html='';
   // spells
-  if(G.spells&&G.spells.length){
-    html+='<button class="btn-sm btn btn-purple" id="ab-spell">✦ Cast</button>';
-  }
+  if(G.spells&&G.spells.length)html+=abBtn('ab-spell','✦','Cast','btn-purple');
   // inventory
-  html+='<button class="btn-sm btn btn-green" id="ab-inv">🎒 Pack</button>';
+  html+=abBtn('ab-inv','🎒','Pack','btn-green');
   // class abilities (feat-based, works across multiclass)
   const abil=(G.activeFeats||[]).filter(f=>ACTIVATABLE.includes(f));
-  if(abil.length)html+='<button class="btn-sm btn btn-red" id="ab-feat">✦ Abilities</button>';
+  if(abil.length)html+=abBtn('ab-feat','✨','Abilities','btn-red');
   // breath weapon (dragonborn)
-  if(G.race.id==='dragonborn')html+='<button class="btn-sm btn" id="ab-breath" style="border-color:#e67e22;color:#e67e22">🔥 Breath</button>';
-  html+='<button class="btn-sm btn btn-blue" id="ab-rest">🏕 Rest</button>';
-  html+='<button class="btn-sm btn" id="ab-wait">⏳ Wait</button>';
+  if(G.race.id==='dragonborn')html+=abBtn('ab-breath','🔥','Breath','','border-color:#e67e22;color:#e67e22');
+  html+=abBtn('ab-rest','🏕','Rest','btn-blue');
+  html+=abBtn('ab-wait','⏳','Wait');
   bar.innerHTML=html;
   const q=id=>document.getElementById(id);
   q('ab-inv').onclick=openInventory;
