@@ -649,6 +649,56 @@ const ELEM_COL={fire:'#e67e22',radiant:'#f0d472',force:'#a569bd',frost:'#aed6f1'
 // gear slots shown on the character sheet
 const GEAR_SLOTS=['weapon','shield','armor','helm','cloak','boots','ring','amulet'];
 const SLOT_ICONS={weapon:'⚔️',shield:'🛡️',armor:'🦺',helm:'🪖',cloak:'🧣',boots:'🥾',ring:'💍',amulet:'📿'};
+
+// ═══════════════════════════════════════════════════════════════
+//  PIXEL SPRITES — 0x72's Dungeon Tileset II (CC0), extended sheet
+//  Emoji remain as automatic fallback for anything unmapped.
+// ═══════════════════════════════════════════════════════════════
+const SPR={"wall_top_left":[16,0,16,16,1],"wall_top_mid":[32,0,16,16,1],"wall_top_right":[48,0,16,16,1],"wall_left":[16,16,16,16,1],"wall_mid":[32,16,16,16,1],"wall_right":[48,16,16,16,1],"wall_fountain_top":[64,0,16,16,1],"wall_fountain_mid_red_anim":[64,16,16,16,3],"wall_fountain_basin_red_anim":[64,32,16,16,3],"wall_fountain_mid_blue_anim":[64,48,16,16,3],"wall_fountain_basin_blue_anim":[64,64,16,16,3],"wall_hole_1":[48,32,16,16,1],"wall_hole_2":[48,48,16,16,1],"wall_banner_red":[16,32,16,16,1],"wall_banner_blue":[32,32,16,16,1],"wall_banner_green":[16,48,16,16,1],"wall_banner_yellow":[32,48,16,16,1],"column_top":[80,80,16,16,1],"column_mid":[80,96,16,16,1],"coulmn_base":[80,112,16,16,1],"column":[80,80,16,48,1],"wall_column_top":[96,80,16,16,1],"wall_column_mid":[96,96,16,16,1],"wall_coulmn_base":[96,112,16,16,1],"wall_goo":[64,80,16,16,1],"wall_goo_base":[64,96,16,16,1],"floor_1":[16,64,16,16,1],"floor_2":[32,64,16,16,1],"floor_3":[48,64,16,16,1],"floor_4":[16,80,16,16,1],"floor_5":[32,80,16,16,1],"floor_6":[48,80,16,16,1],"floor_7":[16,96,16,16,1],"floor_8":[32,96,16,16,1],"floor_ladder":[48,96,16,16,1],"floor_spikes_anim":[16,176,16,16,4],"wall_side_top_left":[0,112,16,16,1],"wall_side_top_right":[16,112,16,16,1],"wall_side_mid_left":[0,128,16,16,1],"wall_side_mid_right":[16,128,16,16,1],"wall_side_front_left":[0,144,16,16,1],"wall_side_front_right":[16,144,16,16,1],"wall_corner_top_left":[32,112,16,16,1],"wall_corner_top_right":[48,112,16,16,1],"wall_corner_left":[32,128,16,16,1],"wall_corner_right":[48,128,16,16,1],"wall_corner_bottom_left":[32,144,16,16,1],"wall_corner_bottom_right":[48,144,16,16,1],"wall_corner_front_left":[32,160,16,16,1],"wall_corner_front_right":[48,160,16,16,1],"wall_inner_corner_l_top_left":[80,128,16,16,1],"wall_inner_corner_l_top_rigth":[64,128,16,16,1],"wall_inner_corner_mid_left":[80,144,16,16,1],"wall_inner_corner_mid_rigth":[64,144,16,16,1],"wall_inner_corner_t_top_left":[80,160,16,16,1],"wall_inner_corner_t_top_rigth":[64,160,16,16,1],"edge":[96,128,16,16,1],"hole":[96,144,16,16,1],"doors_all":[16,221,64,35,1],"doors_frame_left":[16,224,16,32,1],"doors_frame_top":[32,221,32,3,1],"doors_frame_righ":[63,224,16,32,1],"doors_leaf_closed":[32,224,32,32,1],"doors_leaf_open":[80,224,32,32,1],"chest_empty_open_anim":[304,288,16,16,3],"chest_full_open_anim":[304,304,16,16,3],"chest_mimic_open_anim":[304,320,16,16,3],"flask_big_red":[288,224,16,16,1],"flask_big_blue":[304,224,16,16,1],"flask_big_green":[320,224,16,16,1],"flask_big_yellow":[336,224,16,16,1],"flask_red":[288,240,16,16,1],"flask_blue":[304,240,16,16,1],"flask_green":[320,240,16,16,1],"flask_yellow":[336,240,16,16,1],"skull":[288,320,16,16,1],"crate":[288,298,16,22,1],"coin_anim":[288,272,8,8,4],"ui_heart_full":[288,256,16,16,1],"ui_heart_half":[304,256,16,16,1],"ui_heart_empty":[320,256,16,16,1],"weapon_knife":[293,18,6,13,1],"weapon_rusty_sword":[307,26,10,21,1],"weapon_regular_sword":[323,26,10,21,1],"weapon_red_gem_sword":[339,26,10,21,1],"weapon_big_hammer":[291,42,10,37,1],"weapon_hammer":[307,55,10,24,1],"weapon_hammer_projectile":[352,64,16,16,1],"weapon_baton_with_spikes":[323,57,10,22,1],"weapon_mace":[339,55,10,24,1],"weapon_katana":[293,82,6,29,1],"weapon_saw_sword":[307,86,10,25,1],"weapon_anime_sword":[322,81,12,30,1],"weapon_axe":[341,90,9,21,1],"weapon_machete":[294,121,5,22,1],"weapon_cleaver":[310,124,8,19,1],"weapon_duel_sword":[325,113,9,30,1],"weapon_knight_sword":[339,114,10,29,1],"weapon_golden_sword":[291,153,10,22,1],"weapon_lavish_sword":[307,145,10,30,1],"weapon_red_magic_staff":[324,145,8,30,1],"weapon_green_magic_staff":[340,145,8,30,1],"weapon_spear":[293,177,6,30,1],"weapon_arrow":[308,186,7,21,1],"weapon_bow":[325,180,25,7,1],"tiny_zombie_idle_anim":[368,16,16,16,4],"tiny_zombie_run_anim":[432,16,16,16,4],"goblin_idle_anim":[368,32,16,16,4],"goblin_run_anim":[432,32,16,16,4],"imp_idle_anim":[368,48,16,16,4],"imp_run_anim":[432,48,16,16,4],"skelet_idle_anim":[368,80,16,16,4],"skelet_run_anim":[432,80,16,16,4],"muddy_idle_anim":[368,112,16,16,4],"muddy_run_anim":[368,112,16,16,4],"swampy_idle_anim":[432,112,16,16,4],"swampy_run_anim":[432,112,16,16,4],"zombie_idle_anim":[368,144,16,16,4],"zombie_run_anim":[368,144,16,16,4],"ice_zombie_idle_anim":[432,144,16,16,4],"ice_zombie_run_anim":[432,144,16,16,4],"masked_orc_idle_anim":[368,172,16,20,4],"masked_orc_run_anim":[432,172,16,20,4],"orc_warrior_idle_anim":[368,204,16,20,4],"orc_warrior_run_anim":[432,204,16,20,4],"orc_shaman_idle_anim":[368,236,16,20,4],"orc_shaman_run_anim":[432,236,16,20,4],"necromancer_idle_anim":[368,268,16,20,4],"necromancer_run_anim":[368,268,16,20,4],"wogol_idle_anim":[368,300,16,20,4],"wogol_run_anim":[432,300,16,20,4],"chort_idle_anim":[368,328,16,24,4],"chort_run_anim":[432,328,16,24,4],"big_zombie_idle_anim":[16,270,32,34,4],"big_zombie_run_anim":[144,270,32,34,4],"ogre_idle_anim":[16,320,32,32,4],"ogre_run_anim":[144,320,32,32,4],"big_demon_idle_anim":[16,364,32,36,4],"big_demon_run_anim":[144,364,32,36,4],"elf_f_idle_anim":[128,4,16,28,4],"elf_f_run_anim":[192,4,16,28,4],"elf_f_hit_anim":[256,4,16,28,1],"elf_m_idle_anim":[128,36,16,28,4],"elf_m_run_anim":[192,36,16,28,4],"elf_m_hit_anim":[256,36,16,28,1],"knight_f_idle_anim":[128,68,16,28,4],"knight_f_run_anim":[192,68,16,28,4],"knight_f_hit_anim":[256,68,16,28,1],"knight_m_idle_anim":[128,100,16,28,4],"knight_m_run_anim":[192,100,16,28,4],"knight_m_hit_anim":[256,100,16,28,1],"wizzard_f_idle_anim":[128,132,16,28,4],"wizzard_f_run_anim":[192,132,16,28,4],"wizzard_f_hit_anim":[256,132,16,28,1],"wizzard_m_idle_anim":[128,164,16,28,4],"wizzard_m_run_anim":[192,164,16,28,4],"wizzard_m_hit_anim":[256,164,16,28,1],"lizard_f_idle_anim":[128,196,16,28,4],"lizard_f_run_anim":[192,196,16,28,4],"lizard_f_hit_anim":[256,196,16,28,1],"lizard_m_idle_anim":[128,228,16,28,4],"lizard_m_run_anim":[192,228,16,28,4],"lizard_m_hit_anim":[256,228,16,28,1],"flame":[512,16,16,16,8],"flame_wall":[512,32,16,32,8],"flame_background":[512,64,16,16,8],"flame_brasier":[512,80,16,32,8],"xp":[288,336,16,16,1],"bandit_idle_anim":[640,0,32,32,4],"bandit_run_anim":[768,0,32,32,4],"centaur_f_idle_anim":[640,32,32,32,4],"centaur_f_run_anim":[768,32,32,32,4],"centaur_m_idle_anim":[640,64,32,32,4],"centaur_m_run_anim":[768,64,32,32,4],"wood_elf_m_idle_anim":[640,96,32,32,4],"wood_elf_m_run_anim":[768,96,32,32,4],"wood_elf_f_idle_anim":[640,128,32,32,4],"wood_elf_f_run_anim":[768,128,32,32,4],"elf_queen_m_idle_anim":[640,160,32,32,4],"elf_queen_m_run_anim":[768,160,32,32,4],"elf_king_f_idle_anim":[640,192,32,32,4],"fairy_idle_anim":[768,192,32,32,4],"ent_idle_anim":[640,224,32,32,4],"ent_run_anim":[768,224,32,32,4],"mushroom_small_idle_anim":[640,256,32,32,4],"mushroom_small_run_anim":[768,256,32,32,4],"mushroom_medium_idle_anim":[640,288,32,32,4],"mushroom_medium_run_anim":[768,288,32,32,4],"mushroom_big_idle_anim":[640,320,32,32,4],"mushroom_big_run_anim":[768,320,32,32,4],"bear_idle_anim":[640,352,32,32,4],"bear_run_anim":[768,352,32,32,4],"golem_idle_anim":[640,384,64,64,6],"golem_run_anim":[640,448,64,64,6],"gnoll_idle_anim":[896,0,32,32,4],"gnoll_run_anim":[1024,0,32,32,4],"gnoll_masked_idle_anim":[896,32,32,32,4],"gnoll_masked_run_anim":[1024,32,32,32,4],"gnoll_grunt_idle_anim":[896,64,32,32,4],"gnoll_grunt_run_anim":[1024,64,32,32,4],"gnoll_brute_idle_anim":[896,96,32,32,4],"gnoll_brute_run_anim":[1024,96,32,32,4],"puppy_idle_anim":[1152,16,16,16,4],"puppy_run_anim":[1216,16,16,16,4],"knight_elite_idle_anim":[896,128,32,32,4],"knight_elite_run_anim":[1024,128,32,32,4],"orc_boss_idle_anim":[896,160,32,32,4],"orc_boss_run_anim":[1024,160,32,32,4],"cleric_1_idle_anim":[896,192,32,32,4],"cleric_2_idle_anim":[1024,192,32,32,4],"cleric_3_idle_anim":[896,224,32,32,4],"wise_wizard_idle_anim":[1024,224,32,32,4],"ranger_idle_anim":[896,256,32,32,4],"ranger_run_anim":[1024,256,32,32,4],"elf_knight_idle_anim":[896,288,32,32,4],"elf_knight_run_anim":[1024,288,32,32,4],"direwolf_idle_anim":[896,320,32,32,4],"direwolf_run_anim":[1024,320,32,32,4],"grass_1":[512,112,16,16,1],"grass_2":[528,112,16,16,1],"grass_3":[544,112,16,16,1],"grass_4":[560,112,16,16,1],"grass_5":[576,112,16,16,1],"grass_detail_1":[512,128,16,16,1],"grass_detail_2":[528,128,16,16,1],"grass_detail_3":[544,128,16,16,1],"grass_detail_4":[560,128,16,16,1],"grass_detail_5":[576,128,16,16,1],"grass_detail_6":[592,128,16,16,1],"grass_detail_7":[608,128,16,16,1],"grass_detail_8":[624,128,16,16,1],"bunny_idle_anim":[896,352,32,32,4],"bunny_run_anim":[1024,352,32,32,4],"leprechaun_idle_anim":[368,384,16,32,4],"leprechaun_run_anim":[432,384,16,32,4],"angel_idle_anim":[368,368,16,16,4],"angel_run_anim":[432,368,16,16,4]};
+const SHEET=new Image();
+SHEET.onload=()=>{SHEET.ok=true;};
+SHEET.onerror=()=>{SHEET.ok=false;};
+SHEET.src='tiles.png';
+let animClock=0; // shared sprite animation clock, advanced each frame
+// draw a sprite anchored at bottom-center (cx = feet x, cy = feet y)
+function drawSprite(key,cx,cy,o={}){
+  if(!SHEET.ok)return false;
+  const s=SPR[key];if(!s)return false;
+  const [sx,sy,w,h,fr]=s;
+  const f=o.frame!==undefined?(o.frame%fr):((animClock+(o.seed||0))%fr);
+  const sc=(o.scale||1)*(TS/16);
+  const dw=w*sc,dh=h*sc;
+  ctx.save();
+  if(o.alpha!==undefined)ctx.globalAlpha=o.alpha;
+  if(o.filter)ctx.filter=o.filter;
+  ctx.translate(cx,cy);
+  if(o.flip)ctx.scale(-1,1);
+  ctx.drawImage(SHEET,sx+f*w,sy,w,h,Math.round(-dw/2),Math.round(-dh),dw,dh);
+  ctx.restore();
+  return true;
+}
+// hero sprite: race first (elves, lizardfolk…), else class; gendered where the sheet has it
+function heroSpr(moving){
+  const g=G.gender==='f'?'f':'m';
+  const raceMap={elf:'elf',dragonborn:'lizard',halfling:'wood_elf',halforc:'masked_orc',tiefling:'chort'};
+  const clsMap={fighter:'knight',barbarian:'orc_boss',rogue:'bandit',ranger:'ranger',wizard:'wizzard',cleric:'cleric_2',paladin:'knight_elite'};
+  const base=raceMap[G.race.id]||clsMap[G.cls.id]||'knight';
+  const kind=moving?'run':'idle';
+  for(const k of [`${base}_${g}_${kind}_anim`,`${base}_${kind}_anim`,`${base}_${g}_idle_anim`,`${base}_idle_anim`,base])
+    if(SPR[k])return k;
+  return null;
+}
+const MON_SPR={goblin:'goblin',skeleton:'skelet',zombie:'zombie',orc:'orc_warrior',ogre:'ogre',troll:'big_zombie',mimic:'chest_mimic_open_anim',tgoblin:'leprechaun',lich:'necromancer'};
+const DRAGON_HUE={fire:0,lightning:215,poison:95,frost:185,acid:65,radiant:45};
+function enemySpr(e,moving){
+  const kind=moving?'run':'idle';
+  if(e.id&&/dragon$/.test(e.id))return `big_demon_${kind}_anim`;
+  if(e.id==='wyrmling')return `imp_${kind}_anim`;
+  const b=MON_SPR[e.id];if(!b)return null;
+  if(SPR[b])return b;
+  for(const k of [`${b}_${kind}_anim`,`${b}_idle_anim`,b])if(SPR[k])return k;
+  return null;
+}
 // visual themes — the dungeon changes character as you descend
 const THEMES=[
   {name:'Stone Halls',  floor:'#1c1524',floorA:'#211a2b',floorB:'#171020',cap:'#3a2c50',capHi:'#503c6e',mortar:'#261c38',face:'#26193a',faceLo:'#0b0712',stair:'#f0d472',accent:null,
@@ -925,9 +975,11 @@ function drawTraps(){
     const def=TRAP_TYPES[t.type];
     const px=t.x*TS+TS/2,py=t.y*TS+TS/2;
     ctx.globalAlpha=(vis?0.9:0.4)*(0.75+0.25*Math.sin(torchPhase*3+t.x));
-    ctx.font='13px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle=def.col;
-    ctx.fillText(def.glyph,px,py+2);
+    if(!(t.type==='spike'&&drawSprite('floor_spikes_anim',px,t.y*TS+TS,{seed:t.x}))){
+      ctx.font='13px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillStyle=def.col;
+      ctx.fillText(def.glyph,px,py+2);
+    }
     ctx.strokeStyle=def.col;ctx.lineWidth=1;ctx.globalAlpha*=0.5;
     ctx.strokeRect(t.x*TS+3.5,t.y*TS+3.5,TS-7,TS-7);
     ctx.globalAlpha=1;
@@ -1487,6 +1539,7 @@ function tryMove(dx,dy){
   const sec=SECRETS.find(s=>s.x===nx&&s.y===ny&&s.revealed&&!s.open);
   if(sec){busy=true;openSecret(sec);return;}
   if(!passable(nx,ny)){return;}
+  if(dx)G.face=dx>0?1:-1; // hero faces the way they walk
   G.x=nx;G.y=ny;sfx('step');
   // pick up items
   const it=ITEMS_ON.find(i=>i.x===nx&&i.y===ny);
@@ -1891,10 +1944,14 @@ function drawPet(){
   const px=PET.rx*TS+TS/2,py=PET.ry*TS+TS/2;
   const bob=PET.downed?0:Math.sin(torchPhase*2.4)*1.1;
   ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(px,py+8,7,2.6,0,0,Math.PI*2);ctx.fill();
-  ctx.globalAlpha=PET.downed?0.4:1;
-  ctx.font='16px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(PET.glyph,px,py-ENT_RAISE+2+bob);
-  ctx.globalAlpha=1;
+  const pmoving=Math.abs(PET.x-PET.rx)+Math.abs(PET.y-PET.ry)>0.08;
+  if(!drawSprite(PET.downed?'direwolf_idle_anim':(pmoving?'direwolf_run_anim':'direwolf_idle_anim'),px,py+TS*0.42,
+    {scale:0.72,flip:(G.rx??G.x)<PET.rx,seed:7,alpha:PET.downed?0.4:1,frame:PET.downed?0:undefined})){
+    ctx.globalAlpha=PET.downed?0.4:1;
+    ctx.font='16px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(PET.glyph,px,py-ENT_RAISE+2+bob);
+    ctx.globalAlpha=1;
+  }
   if(!PET.downed&&PET.hp<PET.maxHp){
     const w=TS*0.7,h=3,bx=px-w/2,by=py-TS*0.45;
     ctx.fillStyle='#000';ctx.fillRect(bx-1,by-1,w+2,h+2);
@@ -2299,6 +2356,7 @@ function resizeCanvas(){
   const stage=document.getElementById('stage');
   canvas.width=stage.clientWidth;canvas.height=stage.clientHeight;
   fx.width=stage.clientWidth;fx.height=stage.clientHeight;
+  ctx.imageSmoothingEnabled=false; // crisp pixel art
 }
 function updateCamera(){
   tCamX=G.x*TS+TS/2-canvas.width/2;
@@ -2309,6 +2367,7 @@ function render(ts){
   let dt=Math.min(40,ts-lastTime||16);lastTime=ts;
   if(hitStop>0){hitStop--;dt=0;} // brief freeze-frame on critical hits
   torchPhase+=0.05;
+  animClock=Math.floor(ts/150); // sprite animation frames
   // ambient audio: biome loop + critical-HP heartbeat
   if(!gameOver){
     ambTimer-=dt;
@@ -2484,8 +2543,11 @@ function drawTile(x,y,vis){
       g.addColorStop(0,hexA(THEME.stair,0.28*pulse));g.addColorStop(1,hexA(THEME.stair,0));
       ctx.fillStyle=g;ctx.fillRect(px-TS*0.45,py-TS*0.45,TS*1.9,TS*1.9);
       ctx.shadowColor=THEME.stair;ctx.shadowBlur=vis?10+9*pulse:4;
-      ctx.font='19px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('🔻',px+TS/2,py+TS/2);ctx.shadowBlur=0;
+      if(!drawSprite('floor_ladder',px+TS/2,py+TS,{frame:0})){
+        ctx.font='19px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('🔻',px+TS/2,py+TS/2);
+      }
+      ctx.shadowBlur=0;
     }
   }
 }
@@ -2505,11 +2567,13 @@ function drawPlayer(){
   // status ring (rage/bless/shield)
   if(G.raging){ctx.strokeStyle='#e74c3c';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py+2,TS*0.46,0,Math.PI*2);ctx.stroke();}
   if(G.shieldAC){ctx.strokeStyle='#5dade2';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(px,py+2,TS*0.48,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
-  // raised sprite with idle breathing
-  ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText((G.emoji||G.race.emoji),px,py-ENT_RAISE+bob);
-  // class pip
-  ctx.font='11px serif';ctx.fillText(G.cls.emoji,px+8,py-ENT_RAISE+8+bob);
+  // pixel-art hero (emoji fallback if the sheet isn't loaded)
+  const moving=Math.abs(G.x-(G.rx??G.x))+Math.abs(G.y-(G.ry??G.y))>0.08;
+  if(!drawSprite(heroSpr(moving),px,py+TS*0.42,{flip:(G.face||1)<0,seed:3})){
+    ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText((G.emoji||G.race.emoji),px,py-ENT_RAISE+bob);
+    ctx.font='11px serif';ctx.fillText(G.cls.emoji,px+8,py-ENT_RAISE+8+bob);
+  }
 }
 
 function drawEnemy(e){
@@ -2531,10 +2595,29 @@ function drawEnemy(e){
   }
   if(e.boss||e.flees){ctx.shadowColor=e.col;ctx.shadowBlur=e.big?26:18;}
   if(e.flash>0){ctx.shadowColor='#fff';ctx.shadowBlur=20;e.flash-=.12;}
-  ctx.font=(e.big?'44px':e.boss?'24px':'19px')+' serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.globalAlpha=e.asleep?.55:1;
-  ctx.fillText(e.glyph,px,py-ENT_RAISE-(e.big?8:0)+bob);
-  ctx.globalAlpha=1;ctx.shadowBlur=0;
+  // pixel-art sprite: dragons are hue-shifted demons; unmapped monsters keep their emoji
+  const moving=Math.abs(e.x-(e.rx??e.x))+Math.abs(e.y-(e.ry??e.y))>0.08;
+  const sprKey=enemySpr(e,moving);
+  let drawn=false;
+  if(sprKey){
+    let filter='';
+    if(e.breathType&&/big_demon|imp/.test(sprKey)){
+      filter=`hue-rotate(${DRAGON_HUE[e.breathType]||0}deg)`;
+      if(e.breathType==='radiant')filter+=' brightness(1.3) saturate(1.4)';
+    }
+    if(e.flash>0)filter+=(filter?' ':'')+'brightness(2.4)';
+    drawn=drawSprite(sprKey,px,py+TS*0.42,{
+      flip:(G.rx??G.x)<(e.rx??e.x),seed:(e.x*3+e.y)|0,
+      scale:e.big?1.7:(e.boss?1.25:1),
+      alpha:e.asleep?.55:1,filter:filter||undefined});
+  }
+  if(!drawn){
+    ctx.font=(e.big?'44px':e.boss?'24px':'19px')+' serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.globalAlpha=e.asleep?.55:1;
+    ctx.fillText(e.glyph,px,py-ENT_RAISE-(e.big?8:0)+bob);
+    ctx.globalAlpha=1;
+  }
+  ctx.shadowBlur=0;
   // hp bar
   if(e.hp<e.maxHp){
     const w=TS*(e.big?1.7:0.8),h=e.big?4:3,bx=px-w/2,by=py-TS*0.5-ENT_RAISE-(e.big?16:0);
@@ -2650,8 +2733,13 @@ function drawDecor(){
       // solid props: ground shadow + raised sprite
       ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(px,py+9,8,3.2,0,0,Math.PI*2);ctx.fill();
       if(d.light&&vis){const fl=Math.sin(torchPhase*3+d.x*1.7);ctx.shadowColor=`rgb(${d.lcol[0]},${d.lcol[1]},${d.lcol[2]})`;ctx.shadowBlur=12+fl*4;}
-      ctx.font='18px serif';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(d.glyph,px,py-ENT_RAISE+1);
+      // pixel sprites for props the sheet covers; emoji for the rest
+      const PROP_SPR={chest:['chest_full_open_anim',0],crate:['crate',0],brazier:['flame_brasier',undefined]};
+      const ps=PROP_SPR[d.type];
+      if(!(ps&&drawSprite(ps[0],px,py+TS*0.45,{frame:ps[1],seed:d.x}))){
+        ctx.font='18px serif';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(d.glyph,px,py-ENT_RAISE+1);
+      }
       ctx.shadowBlur=0;
     }
     ctx.globalAlpha=1;
@@ -3361,7 +3449,7 @@ function startGame(){
   const maxHp=sel.cls.hd+mod(stats.con)+(sel.race.id==='dwarf'?2:0);
   G={
     name,race:sel.race,cls:sel.cls,stats,
-    gender:sel.gender,
+    gender:sel.gender,face:1,
     diff:sel.diff||'normal',daily:DAILY_PENDING,
     emoji:sel.gender==='f'?(sel.race.f||sel.race.emoji):(sel.race.m||sel.race.emoji),
     level:1,xp:0,gold:rnd(10)+5,
