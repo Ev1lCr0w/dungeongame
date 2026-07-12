@@ -687,7 +687,9 @@ function drawSprite(key,cx,cy,o={}){
   return true;
 }
 // hero sprite: race first (elves, lizardfolk…), else class; gendered where the sheet has it
-const HERO_RACE_SPR={elf:'elf',dragonborn:'lizard',halfling:'wood_elf',halforc:'masked_orc',tiefling:'chort'};
+const HERO_RACE_SPR={elf:'elf',dwarf:'leprechaun',dragonborn:'lizard',halfling:'wood_elf',halforc:'masked_orc',tiefling:'chort'};
+// per-race color shift: the dwarf borrows the stout leprechaun body, re-dyed red-brown
+function heroFilterFor(raceId){return raceId==='dwarf'?'hue-rotate(200deg) saturate(1.15) brightness(0.95)':null;}
 const HERO_CLS_SPR={fighter:'knight',barbarian:'orc_boss',rogue:'bandit',ranger:'ranger',wizard:'wizzard',cleric:'cleric_2',paladin:'knight_elite'};
 function heroSprFor(raceId,clsId,g,moving){
   const base=HERO_RACE_SPR[raceId]||HERO_CLS_SPR[clsId]||'knight';
@@ -2673,12 +2675,12 @@ function drawPlayer(){
   if(G.shieldAC){ctx.strokeStyle='#5dade2';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(px,py+2,TS*0.48,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
   // pixel-art hero (emoji fallback if the sheet isn't loaded)
   const moving=Math.abs(G.x-(G.rx??G.x))+Math.abs(G.y-(G.ry??G.y))>0.08;
-  let heroKey=heroSpr(moving),heroFilter;
+  let heroKey=heroSpr(moving),heroFilter=heroFilterFor(G.race.id);
   if(G.hitT>0){ // flinch: dedicated hit frame where the sheet has one, red-hot flash otherwise
     G.hitT-=0.06;
     const hk=heroKey&&heroKey.replace(/_(idle|run)_anim$/,'_hit_anim');
     if(hk&&SPR[hk])heroKey=hk;
-    heroFilter='brightness(1.7) saturate(1.6)';
+    heroFilter=(heroFilter?heroFilter+' ':'')+'brightness(1.7) saturate(1.6)';
   }
   if(!drawSprite(heroKey,px,py+TS*0.42,{flip:(G.face||1)<0,seed:3,filter:heroFilter})){
     ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -3150,7 +3152,9 @@ function openInventory(reopen){
   cells.forEach(cslot=>{
     if(cslot===null){doll+='<div></div>';return;}
     if(cslot==='FIG'){
-      const hs=sprCSS(heroSpr(false),52);
+      let hs=sprCSS(heroSpr(false),52);
+      const hf=heroFilterFor(G.race.id);
+      if(hs&&hf)hs+=`;filter:${hf}`;
       doll+=`<div class="pd-fig">${hs?`<span style="${hs}"></span>`:(G.emoji||G.race.emoji)}<span style="position:absolute;bottom:2px;right:4px;font-size:1rem">${G.cls.emoji}</span></div>`;
       return;
     }
@@ -3477,8 +3481,9 @@ const DIFFS=[
   {id:'hard',label:'Hardcore',emoji:'💀',desc:'Enemies +20% damage & HP. Vials of Revive do not work. One life.'},
 ];
 // card icon: pixel sprite when the sheet is up, emoji otherwise
-function cardIcon(sprKey,emoji,box){
-  const css=sprCSS(sprKey,box||42);
+function cardIcon(sprKey,emoji,box,filter){
+  let css=sprCSS(sprKey,box||42);
+  if(css&&filter)css+=`;filter:${filter}`;
   return css?`<div class="pspr"><span style="${css}"></span></div>`:`<div class="pemo">${emoji}</div>`;
 }
 function buildCreate(){
@@ -3507,7 +3512,7 @@ function buildCreate(){
     RACES.forEach(r=>{
       const d=document.createElement('div');d.className='pcard'+(sel.race===r?' sel':'');
       const key=heroSprFor(r.id,sel.cls&&sel.cls.id,g(),false);
-      d.innerHTML=`${cardIcon(key,r.emoji)}<h4>${r.name}</h4><p>${r.desc}</p>`;
+      d.innerHTML=`${cardIcon(key,r.emoji,42,heroFilterFor(r.id))}<h4>${r.name}</h4><p>${r.desc}</p>`;
       d.onclick=()=>{sel.race=r;rg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updateSummary();};
       rg.appendChild(d);
     });
@@ -3567,7 +3572,9 @@ function updateSummary(){
     let feats=sel.cls.feats.map(f=>FEAT_NAMES[f]||f).join(', ');
     // animated pixel portrait of the hero-to-be
     const key=heroSprFor(sel.race.id,sel.cls.id,sel.gender==='f'?'f':'m',false);
-    const css=sprCSS(key,86,4);
+    let css=sprCSS(key,86,4);
+    const rf=heroFilterFor(sel.race.id);
+    if(css&&rf)css+=`;filter:${rf}`;
     const wep=sprCSS(weaponSprKey(sel.cls.weapon.name),30,2);
     const portrait=css
       ?`<div id="hero-prev-box"><span id="hero-prev" data-key="${key}" style="${css}"></span></div>`
