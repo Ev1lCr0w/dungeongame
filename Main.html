@@ -688,6 +688,22 @@ function heroSpr(moving){
     if(SPR[k])return k;
   return null;
 }
+// weapon sprites for the paper-doll (strip rarity prefixes and +N suffixes to find the root)
+const WEAPON_SPR={'Longsword':'weapon_regular_sword','Greataxe':'weapon_axe','Greataxe +1':'weapon_axe','Rapier':'weapon_duel_sword','Longbow':'weapon_bow','Longbow +1':'weapon_bow','Quarterstaff':'weapon_green_magic_staff','Mace':'weapon_mace','Warhammer':'weapon_hammer','Flametongue':'weapon_red_gem_sword','Frost Brand':'weapon_anime_sword'};
+function weaponSprKey(name){
+  if(!name)return null;
+  const root=name.replace(/^(Rare|Legendary) /,'').replace(/ \+\d+$/,'');
+  return WEAPON_SPR[root]||WEAPON_SPR[root.replace(/ \+\d+$/,'')]||null;
+}
+// CSS crop of the sheet for HTML panels (paper-doll, portraits)
+function sprCSS(key,box){
+  const s=SPR[key];if(!s||!SHEET.ok)return null;
+  const [sx,sy,w,h]=s;
+  const sc=Math.max(1,Math.min(2.5,box/h));
+  return `display:inline-block;width:${Math.round(w*sc)}px;height:${Math.round(h*sc)}px;`+
+    `background:url(tiles.png) -${Math.round(sx*sc)}px -${Math.round(sy*sc)}px;`+
+    `background-size:${Math.round(1536*sc)}px ${Math.round(512*sc)}px;image-rendering:pixelated`;
+}
 const MON_SPR={goblin:'goblin',skeleton:'skelet',zombie:'zombie',orc:'orc_warrior',ogre:'ogre',troll:'big_zombie',mimic:'chest_mimic_open_anim',tgoblin:'leprechaun',lich:'necromancer'};
 const DRAGON_HUE={fire:0,lightning:215,poison:95,frost:185,acid:65,radiant:45};
 function enemySpr(e,moving){
@@ -701,13 +717,13 @@ function enemySpr(e,moving){
 }
 // visual themes — the dungeon changes character as you descend
 const THEMES=[
-  {name:'Stone Halls',  floor:'#1c1524',floorA:'#211a2b',floorB:'#171020',cap:'#3a2c50',capHi:'#503c6e',mortar:'#261c38',face:'#26193a',faceLo:'#0b0712',stair:'#f0d472',accent:null,
+  {name:'Stone Halls',  grade:'#c9c0ea',floor:'#1c1524',floorA:'#211a2b',floorB:'#171020',cap:'#3a2c50',capHi:'#503c6e',mortar:'#261c38',face:'#26193a',faceLo:'#0b0712',stair:'#f0d472',accent:null,
     amb:{col:'#ffd9a0',vy:-0.03,sway:0.18,r:1.0}},                       // golden dust, drifting up
-  {name:'Fungal Depths',floor:'#151d15',floorA:'#1a231a',floorB:'#101810',cap:'#2f4431',capHi:'#446046',mortar:'#1e2e1f',face:'#22331f',faceLo:'#070d07',stair:'#7ee2a8',accent:'#3f9d5a',
+  {name:'Fungal Depths',grade:'#b9e4bb',floor:'#151d15',floorA:'#1a231a',floorB:'#101810',cap:'#2f4431',capHi:'#446046',mortar:'#1e2e1f',face:'#22331f',faceLo:'#070d07',stair:'#7ee2a8',accent:'#3f9d5a',
     amb:{col:'#93e2a5',vy:0.05,sway:0.4,r:1.25}},                        // falling spores
-  {name:'Ember Reaches',floor:'#20130f',floorA:'#261813',floorB:'#190e0b',cap:'#4d2c20',capHi:'#6b3f2a',mortar:'#301a12',face:'#38200f',faceLo:'#0d0503',stair:'#ff9b4d',accent:'#e67e22',
+  {name:'Ember Reaches',grade:'#eec3a4',floor:'#20130f',floorA:'#261813',floorB:'#190e0b',cap:'#4d2c20',capHi:'#6b3f2a',mortar:'#301a12',face:'#38200f',faceLo:'#0d0503',stair:'#ff9b4d',accent:'#e67e22',
     amb:{col:'#ffa64d',vy:-0.09,sway:0.25,r:1.1,glow:true}},             // rising embers
-  {name:'Necropolis',   floor:'#161022',floorA:'#1b142a',floorB:'#110c1b',cap:'#40296b',capHi:'#5e3f96',mortar:'#2a1c46',face:'#301e52',faceLo:'#0a0614',stair:'#d7a8e8',accent:'#a569bd',
+  {name:'Necropolis',   grade:'#cdb4f2',floor:'#161022',floorA:'#1b142a',floorB:'#110c1b',cap:'#40296b',capHi:'#5e3f96',mortar:'#2a1c46',face:'#301e52',faceLo:'#0a0614',stair:'#d7a8e8',accent:'#a569bd',
     amb:{col:'#c39be0',vy:-0.035,sway:0.6,r:1.35,glow:true}},            // drifting soul-wisps
 ];
 let THEME=THEMES[0];
@@ -1465,6 +1481,7 @@ function damagePlayer(dmg){
   dmg=Math.max(1,Math.round(dmg*(G.diff==='easy'?0.75:G.diff==='hard'?1.2:1)));
   if(G.tempHP>0){const a=Math.min(G.tempHP,dmg);G.tempHP-=a;dmg-=a;}
   G.hp-=dmg;shake=Math.max(shake,Math.min(12,dmg/2+3));
+  G.hitT=1; // flinch animation
   sfx('enemyhit');
   spawnText(G.x,G.y,`-${dmg}`,'#ff5050',22);spawnParticle(G.x,G.y,'#e74c3c',8);
   if(G.hp<=0){
@@ -2383,6 +2400,9 @@ function render(ts){
   if(shake>0){sx=(RAND()-.5)*shake;sy=(RAND()-.5)*shake;shake*=0.86;if(shake<.3)shake=0;}
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.save();ctx.translate(-camX+sx,-camY+sy);
+  // opaque black base so composite ops (biome multiply grade) never hit transparency
+  ctx.fillStyle='#000';
+  ctx.fillRect(camX-Math.abs(sx)-8,camY-Math.abs(sy)-8,canvas.width+Math.abs(sx)*2+16,canvas.height+Math.abs(sy)*2+16);
   // tiles
   const x0=Math.max(0,Math.floor(camX/TS)),x1=Math.min(MW,Math.ceil((camX+canvas.width)/TS)+1);
   const y0=Math.max(0,Math.floor(camY/TS)),y1=Math.min(MH,Math.ceil((camY+canvas.height)/TS)+1);
@@ -2390,6 +2410,13 @@ function render(ts){
     if(!EXPLORED[y][x])continue;
     const visible=VIS[y]&&VIS[y][x];
     drawTile(x,y,visible);
+  }
+  // biome color grade over the stone (sprite tiles are neutral gray; this paints the mood)
+  if(SHEET.ok&&THEME.grade){
+    ctx.globalCompositeOperation='multiply';
+    ctx.fillStyle=THEME.grade;
+    ctx.fillRect(camX-sx,camY-sy,canvas.width,canvas.height);
+    ctx.globalCompositeOperation='source-over';
   }
   // smooth glide: rendered positions ease toward logical tiles
   if(G.rx===undefined){G.rx=G.x;G.ry=G.y;}
@@ -2461,7 +2488,63 @@ function render(ts){
   requestAnimationFrame(render);
 }
 
+// sprite-based tiles (used when the sheet is loaded; procedural version is the fallback)
+function sBlit(key,dx,dy,dw,dh,srcHfrac){
+  const s=SPR[key];if(!s)return false;
+  const [sx,sy,w,h]=s;
+  ctx.drawImage(SHEET,sx,sy,w,srcHfrac?h*srcHfrac:h,dx,dy,dw,dh);
+  return true;
+}
+function drawTileS(x,y,vis){
+  const px=x*TS,py=y*TS,t=MAP[y][x],h=tileHash(x,y);
+  if(t===T.WALL){
+    const topY=py-WALL_H;
+    // dark body behind everything
+    ctx.fillStyle='#0a0710';ctx.fillRect(px,topY,TS,TS+WALL_H);
+    // raised cap
+    sBlit('wall_top_mid',px,topY,TS,TS);
+    // exposed south face: top slice of the brick texture
+    if((y+1<MH)&&MAP[y+1][x]!==T.WALL)sBlit('wall_mid',px,topY+TS,TS,WALL_H,WALL_H/TS);
+    // edge shading for the 3D read
+    ctx.fillStyle='rgba(0,0,0,.30)';ctx.fillRect(px,topY,1.5,TS+WALL_H);
+    ctx.fillStyle='rgba(0,0,0,.25)';ctx.fillRect(px,topY+TS-2,TS,2);
+    if(!vis){ctx.fillStyle='rgba(4,2,8,.62)';ctx.fillRect(px,topY,TS,TS+WALL_H);}
+    // revealed secret door crack
+    const sec=SECRETS.find(s=>s.x===x&&s.y===y&&s.revealed&&!s.open);
+    if(sec){
+      ctx.strokeStyle='#f0d472';ctx.lineWidth=1.5;
+      ctx.globalAlpha=0.5+0.35*Math.sin(torchPhase*3);
+      ctx.beginPath();
+      ctx.moveTo(px+TS*0.5,topY+2);ctx.lineTo(px+TS*0.36,topY+TS*0.35);
+      ctx.lineTo(px+TS*0.58,topY+TS*0.55);ctx.lineTo(px+TS*0.42,topY+TS*0.85);
+      ctx.stroke();ctx.globalAlpha=1;
+    }
+  }else{
+    sBlit('floor_'+(1+((h*997)|0)%8),px,py,TS,TS);
+    // ambient occlusion where walls meet the floor
+    ctx.fillStyle='rgba(0,0,0,.30)';
+    if(y>0&&MAP[y-1][x]===T.WALL){ctx.fillRect(px,py,TS,5);ctx.fillStyle='rgba(0,0,0,.16)';ctx.fillRect(px,py+5,TS,3);ctx.fillStyle='rgba(0,0,0,.30)';}
+    if(x>0&&MAP[y][x-1]===T.WALL){ctx.fillRect(px,py,4,TS);}
+    if(x<MW-1&&MAP[y][x+1]===T.WALL){ctx.fillRect(px+TS-4,py,4,TS);}
+    // biome accent
+    if(THEME.accent&&h>0.60&&h<0.68){
+      ctx.fillStyle=hexA(THEME.accent,vis?0.3:0.12);
+      ctx.beginPath();ctx.arc(px+TS*(0.3+h),py+TS*0.55,2.4,0,Math.PI*2);ctx.fill();
+    }
+    if(t===T.STAIR){
+      const pulse=0.6+Math.sin(torchPhase*2)*0.4;
+      const g=ctx.createRadialGradient(px+TS/2,py+TS/2,0,px+TS/2,py+TS/2,TS*0.95);
+      g.addColorStop(0,hexA(THEME.stair,0.28*pulse));g.addColorStop(1,hexA(THEME.stair,0));
+      ctx.fillStyle=g;ctx.fillRect(px-TS*0.45,py-TS*0.45,TS*1.9,TS*1.9);
+      ctx.shadowColor=THEME.stair;ctx.shadowBlur=vis?10+9*pulse:4;
+      sBlit('floor_ladder',px,py,TS,TS);
+      ctx.shadowBlur=0;
+    }
+    if(!vis){ctx.fillStyle='rgba(4,2,8,.58)';ctx.fillRect(px,py,TS,TS);}
+  }
+}
 function drawTile(x,y,vis){
+  if(SHEET.ok){drawTileS(x,y,vis);return;}
   const px=x*TS,py=y*TS,t=MAP[y][x];
   const h=tileHash(x,y);
   if(t===T.WALL){
@@ -2569,7 +2652,14 @@ function drawPlayer(){
   if(G.shieldAC){ctx.strokeStyle='#5dade2';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(px,py+2,TS*0.48,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
   // pixel-art hero (emoji fallback if the sheet isn't loaded)
   const moving=Math.abs(G.x-(G.rx??G.x))+Math.abs(G.y-(G.ry??G.y))>0.08;
-  if(!drawSprite(heroSpr(moving),px,py+TS*0.42,{flip:(G.face||1)<0,seed:3})){
+  let heroKey=heroSpr(moving),heroFilter;
+  if(G.hitT>0){ // flinch: dedicated hit frame where the sheet has one, red-hot flash otherwise
+    G.hitT-=0.06;
+    const hk=heroKey&&heroKey.replace(/_(idle|run)_anim$/,'_hit_anim');
+    if(hk&&SPR[hk])heroKey=hk;
+    heroFilter='brightness(1.7) saturate(1.6)';
+  }
+  if(!drawSprite(heroKey,px,py+TS*0.42,{flip:(G.face||1)<0,seed:3,filter:heroFilter})){
     ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText((G.emoji||G.race.emoji),px,py-ENT_RAISE+bob);
     ctx.font='11px serif';ctx.fillText(G.cls.emoji,px+8,py-ENT_RAISE+8+bob);
@@ -3038,13 +3128,19 @@ function openInventory(reopen){
   let doll='<div class="pdoll">';
   cells.forEach(cslot=>{
     if(cslot===null){doll+='<div></div>';return;}
-    if(cslot==='FIG'){doll+=`<div class="pd-fig">${(G.emoji||G.race.emoji)}<span style="position:absolute;bottom:2px;right:4px;font-size:1rem">${G.cls.emoji}</span></div>`;return;}
+    if(cslot==='FIG'){
+      const hs=sprCSS(heroSpr(false),52);
+      doll+=`<div class="pd-fig">${hs?`<span style="${hs}"></span>`:(G.emoji||G.race.emoji)}<span style="position:absolute;bottom:2px;right:4px;font-size:1rem">${G.cls.emoji}</span></div>`;
+      return;
+    }
     const n=cslot==='weapon'?(G.weapon&&G.weapon.name):(G.equip&&G.equip[cslot]);
     const it=n?ITEMS[n]:null;
     const bcol=it?(it.rarity?it.col:(smithLevel(n)>0?'#e6a35c':'var(--border2)')):'var(--border)';
     const tip=n?`${n} — ${it&&it.desc||''}${cslot==='weapon'?'':' (click to unequip)'}`:`${cslot} — empty`;
+    // pixel sprite for equipped weapons; emoji for everything else
+    const ws=cslot==='weapon'&&n?sprCSS(weaponSprKey(n),34):null;
     doll+=`<div class="pd-slot ${n?'':'empty'}" data-slot="${cslot}" style="border-color:${bcol}" title="${tip.replace(/"/g,'&quot;')}">
-      <div class="ic">${n?(it&&it.sym||SLOT_ICONS[cslot]):SLOT_ICONS[cslot]}</div><div class="lb">${cslot}</div></div>`;
+      <div class="ic">${ws?`<span style="${ws}"></span>`:(n?(it&&it.sym||SLOT_ICONS[cslot]):SLOT_ICONS[cslot])}</div><div class="lb">${cslot}</div></div>`;
   });
   doll+='</div>';
   // set badges under the doll
