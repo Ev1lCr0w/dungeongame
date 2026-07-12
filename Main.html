@@ -167,6 +167,15 @@ button{font-family:inherit}
 #hint-chip{position:absolute;bottom:14px;right:14px;z-index:6;background:rgba(8,6,10,.85);border:1px solid var(--border);border-radius:16px;padding:4px 12px;font-size:.72rem;color:var(--muted);cursor:pointer;font-family:'Cinzel',serif;letter-spacing:1px;transition:all .15s}
 #hint-chip:hover{color:var(--gold2);border-color:var(--gold)}
 .hint kbd{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:'Cinzel',serif;font-size:.7rem;color:var(--gold2)}
+/* Forge screen polish */
+.stepn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,#4a341a,#2c1e0f);border:1px solid var(--gold);color:var(--gold2);font-size:.72rem;font-family:'Cinzel',serif;flex-shrink:0}
+.pcard .pspr{height:48px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:5px;filter:drop-shadow(0 3px 3px rgba(0,0,0,.55))}
+.pcard.sel .pspr{filter:drop-shadow(0 0 8px rgba(240,212,114,.9))}
+.fsword{display:inline-block;vertical-align:middle;margin:0 12px;transform:rotate(-28deg)}
+.fsword.r{transform:rotate(28deg) scaleX(-1)}
+#hero-prev-wrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+#hero-prev-box{width:112px;height:112px;flex-shrink:0;background:radial-gradient(circle at 50% 68%,rgba(201,162,39,.20),rgba(18,11,22,.95) 72%);border:2px solid var(--gold);border-radius:12px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px;box-shadow:inset 0 0 26px rgba(0,0,0,.6),0 0 18px rgba(201,162,39,.28)}
+
 /* Boss bar */
 #boss-bar{position:absolute;top:52px;left:50%;transform:translateX(-50%);width:min(420px,58%);z-index:6;display:none;text-align:center;pointer-events:none}
 #bb-name{font-family:'Cinzel',serif;font-size:.85rem;color:#ff9b8d;letter-spacing:2px;text-shadow:0 0 12px rgba(231,76,60,.6);margin-bottom:3px}
@@ -213,42 +222,42 @@ button{font-family:inherit}
 
 <!-- ════════ CREATE ════════ -->
 <section id="s-create">
-  <h2>Forge Your Hero</h2>
+  <h2><span class="fsword" id="fsw-l"></span>Forge Your Hero<span class="fsword r" id="fsw-r"></span></h2>
   <div class="h2sub">Choose your lineage, calling, and roll the bones of fate.</div>
 
   <div class="csec">
-    <h3>📜 Name</h3>
+    <h3><span class="stepn">1</span>📜 Name</h3>
     <input class="name-in" id="hero-name" placeholder="Enter your hero's name..." maxlength="22" />
   </div>
 
   <div class="csec">
-    <h3>⚧ Identity</h3>
+    <h3><span class="stepn">2</span>⚧ Identity</h3>
     <div class="pick-grid" id="gender-grid" style="grid-template-columns:repeat(2,1fr)"></div>
   </div>
 
   <div class="csec">
-    <h3>☠ Difficulty</h3>
+    <h3><span class="stepn">3</span>☠ Difficulty</h3>
     <div class="pick-grid" id="diff-grid" style="grid-template-columns:repeat(3,1fr)"></div>
   </div>
 
   <div class="csec">
-    <h3>🩸 Lineage</h3>
+    <h3><span class="stepn">4</span>🩸 Lineage</h3>
     <div class="pick-grid" id="race-grid"></div>
   </div>
 
   <div class="csec">
-    <h3>⚔️ Class</h3>
+    <h3><span class="stepn">5</span>⚔️ Class</h3>
     <div class="pick-grid" id="class-grid"></div>
   </div>
 
   <div class="csec">
-    <h3>🎲 Ability Scores <span style="font-size:.78rem;color:var(--muted);font-weight:400">(4d6, drop lowest — racial bonuses applied)</span></h3>
+    <h3><span class="stepn">6</span>🎲 Ability Scores <span style="font-size:.78rem;color:var(--muted);font-weight:400">(4d6, drop lowest — racial bonuses applied)</span></h3>
     <div class="stat-row" id="stat-row"></div>
     <button class="btn btn-sm" id="btn-roll" style="margin-top:12px;width:100%">🎲 Roll the Bones</button>
   </div>
 
   <div class="csec" id="summary-sec">
-    <h3>📖 Your Hero</h3>
+    <h3><span class="stepn">✦</span>📖 Your Hero</h3>
     <div id="summary"></div>
   </div>
 
@@ -678,15 +687,17 @@ function drawSprite(key,cx,cy,o={}){
   return true;
 }
 // hero sprite: race first (elves, lizardfolk…), else class; gendered where the sheet has it
-function heroSpr(moving){
-  const g=G.gender==='f'?'f':'m';
-  const raceMap={elf:'elf',dragonborn:'lizard',halfling:'wood_elf',halforc:'masked_orc',tiefling:'chort'};
-  const clsMap={fighter:'knight',barbarian:'orc_boss',rogue:'bandit',ranger:'ranger',wizard:'wizzard',cleric:'cleric_2',paladin:'knight_elite'};
-  const base=raceMap[G.race.id]||clsMap[G.cls.id]||'knight';
+const HERO_RACE_SPR={elf:'elf',dragonborn:'lizard',halfling:'wood_elf',halforc:'masked_orc',tiefling:'chort'};
+const HERO_CLS_SPR={fighter:'knight',barbarian:'orc_boss',rogue:'bandit',ranger:'ranger',wizard:'wizzard',cleric:'cleric_2',paladin:'knight_elite'};
+function heroSprFor(raceId,clsId,g,moving){
+  const base=HERO_RACE_SPR[raceId]||HERO_CLS_SPR[clsId]||'knight';
   const kind=moving?'run':'idle';
   for(const k of [`${base}_${g}_${kind}_anim`,`${base}_${kind}_anim`,`${base}_${g}_idle_anim`,`${base}_idle_anim`,base])
     if(SPR[k])return k;
   return null;
+}
+function heroSpr(moving){
+  return heroSprFor(G.race.id,G.cls.id,G.gender==='f'?'f':'m',moving);
 }
 // weapon sprites for the paper-doll (strip rarity prefixes and +N suffixes to find the root)
 const WEAPON_SPR={'Longsword':'weapon_regular_sword','Greataxe':'weapon_axe','Greataxe +1':'weapon_axe','Rapier':'weapon_duel_sword','Longbow':'weapon_bow','Longbow +1':'weapon_bow','Quarterstaff':'weapon_green_magic_staff','Mace':'weapon_mace','Warhammer':'weapon_hammer','Flametongue':'weapon_red_gem_sword','Frost Brand':'weapon_anime_sword'};
@@ -695,15 +706,25 @@ function weaponSprKey(name){
   const root=name.replace(/^(Rare|Legendary) /,'').replace(/ \+\d+$/,'');
   return WEAPON_SPR[root]||WEAPON_SPR[root.replace(/ \+\d+$/,'')]||null;
 }
-// CSS crop of the sheet for HTML panels (paper-doll, portraits)
-function sprCSS(key,box){
+// CSS crop of the sheet for HTML panels (paper-doll, portraits, forge cards)
+function sprCSS(key,box,maxSc){
   const s=SPR[key];if(!s||!SHEET.ok)return null;
   const [sx,sy,w,h]=s;
-  const sc=Math.max(1,Math.min(2.5,box/h));
+  const sc=Math.max(1,Math.min(maxSc||2.5,box/h));
   return `display:inline-block;width:${Math.round(w*sc)}px;height:${Math.round(h*sc)}px;`+
     `background:url(tiles.png) -${Math.round(sx*sc)}px -${Math.round(sy*sc)}px;`+
     `background-size:${Math.round(1536*sc)}px ${Math.round(512*sc)}px;image-rendering:pixelated`;
 }
+// animate the forge screen's hero preview by stepping background-position through frames
+setInterval(()=>{
+  const el=document.getElementById('hero-prev');
+  if(!el||!SHEET.ok)return;
+  const s=SPR[el.dataset.key];if(!s)return;
+  const [sx,sy,w,h,fr]=s;
+  const sc=Math.max(1,Math.min(4,86/h));
+  const f=Math.floor(Date.now()/170)%fr;
+  el.style.backgroundPosition=`-${Math.round((sx+f*w)*sc)}px -${Math.round(sy*sc)}px`;
+},170);
 const MON_SPR={goblin:'goblin',skeleton:'skelet',zombie:'zombie',orc:'orc_warrior',ogre:'ogre',troll:'big_zombie',mimic:'chest_mimic_open_anim',tgoblin:'leprechaun',lich:'necromancer'};
 const DRAGON_HUE={fire:0,lightning:215,poison:95,frost:185,acid:65,radiant:45};
 function enemySpr(e,moving){
@@ -3455,7 +3476,13 @@ const DIFFS=[
   {id:'normal',label:'Normal',emoji:'⚔️',desc:'The dungeon as intended.'},
   {id:'hard',label:'Hardcore',emoji:'💀',desc:'Enemies +20% damage & HP. Vials of Revive do not work. One life.'},
 ];
+// card icon: pixel sprite when the sheet is up, emoji otherwise
+function cardIcon(sprKey,emoji,box){
+  const css=sprCSS(sprKey,box||42);
+  return css?`<div class="pspr"><span style="${css}"></span></div>`:`<div class="pemo">${emoji}</div>`;
+}
 function buildCreate(){
+  const g=()=>sel.gender==='f'?'f':'m';
   const dg=document.getElementById('diff-grid');
   dg.innerHTML='';
   DIFFS.forEach(d0=>{
@@ -3465,29 +3492,42 @@ function buildCreate(){
     dg.appendChild(d);
   });
   const gg=document.getElementById('gender-grid');
-  gg.innerHTML='';
-  [{id:'m',label:'Male',emoji:'♂',face:'👨'},{id:'f',label:'Female',emoji:'♀',face:'👩'}].forEach(g=>{
-    const d=document.createElement('div');d.className='pcard';
-    d.innerHTML=`<div class="pemo">${g.face}</div><h4>${g.label} ${g.emoji}</h4><p>Choose your hero's look.</p>`;
-    d.onclick=()=>{sel.gender=g.id;gg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updateSummary();};
-    gg.appendChild(d);
-  });
+  function renderGenders(){
+    gg.innerHTML='';
+    [{id:'m',label:'Male',emoji:'♂',face:'👨',spr:'knight_m_idle_anim'},{id:'f',label:'Female',emoji:'♀',face:'👩',spr:'knight_f_idle_anim'}].forEach(gd=>{
+      const d=document.createElement('div');d.className='pcard'+(sel.gender===gd.id?' sel':'');
+      d.innerHTML=`${cardIcon(gd.spr,gd.face)}<h4>${gd.label} ${gd.emoji}</h4><p>Choose your hero's look.</p>`;
+      d.onclick=()=>{sel.gender=gd.id;gg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');renderRaces();renderClasses();updateSummary();};
+      gg.appendChild(d);
+    });
+  }
   const rg=document.getElementById('race-grid');
-  rg.innerHTML='';
-  RACES.forEach(r=>{
-    const d=document.createElement('div');d.className='pcard';
-    d.innerHTML=`<div class="pemo">${r.emoji}</div><h4>${r.name}</h4><p>${r.desc}</p>`;
-    d.onclick=()=>{sel.race=r;rg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updateSummary();};
-    rg.appendChild(d);
-  });
+  function renderRaces(){
+    rg.innerHTML='';
+    RACES.forEach(r=>{
+      const d=document.createElement('div');d.className='pcard'+(sel.race===r?' sel':'');
+      const key=heroSprFor(r.id,sel.cls&&sel.cls.id,g(),false);
+      d.innerHTML=`${cardIcon(key,r.emoji)}<h4>${r.name}</h4><p>${r.desc}</p>`;
+      d.onclick=()=>{sel.race=r;rg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updateSummary();};
+      rg.appendChild(d);
+    });
+  }
   const cg=document.getElementById('class-grid');
-  cg.innerHTML='';
-  CLASSES.forEach(c=>{
-    const d=document.createElement('div');d.className='pcard';
-    d.innerHTML=`<div class="pemo">${c.emoji}</div><h4>${c.name}</h4><p>${c.desc}</p>`;
-    d.onclick=()=>{sel.cls=c;cg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updateSummary();};
-    cg.appendChild(d);
-  });
+  function renderClasses(){
+    cg.innerHTML='';
+    CLASSES.forEach(c=>{
+      const d=document.createElement('div');d.className='pcard'+(sel.cls===c?' sel':'');
+      const key=heroSprFor(null,c.id,g(),false);
+      d.innerHTML=`${cardIcon(key,c.emoji)}<h4>${c.name}</h4><p>${c.desc}</p>`;
+      d.onclick=()=>{sel.cls=c;cg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');renderRaces();updateSummary();};
+      cg.appendChild(d);
+    });
+  }
+  renderGenders();renderRaces();renderClasses();
+  // golden swords flanking the title
+  const swl=document.getElementById('fsw-l'),swr=document.getElementById('fsw-r');
+  const sw=sprCSS('weapon_golden_sword',40);
+  if(sw&&swl){swl.setAttribute('style',sw);swl.className='fsword';swr.setAttribute('style',sw);swr.className='fsword r';}
   rollStats();
 }
 function rollStats(){
@@ -3525,13 +3565,22 @@ function updateSummary(){
   if(sel.race&&sel.cls){
     const hp=sel.cls.hd+mod(stats.con)+(sel.race.id==='dwarf'?2:0);
     let feats=sel.cls.feats.map(f=>FEAT_NAMES[f]||f).join(', ');
-    sum.innerHTML=`<div class="feat-line"><b>${document.getElementById('hero-name').value||'Your hero'}</b> — ${sel.race.name} ${sel.cls.name}</div>
-      <div class="feat-line">❤ Starting HP: <b>${hp}</b> · 🛡 AC: <b>${sel.cls.armor+Math.min(mod(stats.dex),sel.cls.dexCap)}</b> · ⚔ ${sel.cls.weapon.name} (${sel.cls.weapon.dmg})</div>
+    // animated pixel portrait of the hero-to-be
+    const key=heroSprFor(sel.race.id,sel.cls.id,sel.gender==='f'?'f':'m',false);
+    const css=sprCSS(key,86,4);
+    const wep=sprCSS(weaponSprKey(sel.cls.weapon.name),30,2);
+    const portrait=css
+      ?`<div id="hero-prev-box"><span id="hero-prev" data-key="${key}" style="${css}"></span></div>`
+      :`<div id="hero-prev-box"><span style="font-size:3rem">${sel.gender==='f'?(sel.race.f||sel.race.emoji):(sel.race.m||sel.race.emoji)}</span></div>`;
+    sum.innerHTML=`<div id="hero-prev-wrap">${portrait}<div style="flex:1;min-width:230px">
+      <div class="feat-line"><b>${document.getElementById('hero-name').value||'Your hero'}</b> — ${sel.race.name} ${sel.cls.name}</div>
+      <div class="feat-line">❤ Starting HP: <b>${hp}</b> · 🛡 AC: <b>${sel.cls.armor+Math.min(mod(stats.dex),sel.cls.dexCap)}</b> · ${wep?`<span style="${wep};vertical-align:middle"></span>`:'⚔'} ${sel.cls.weapon.name} (${sel.cls.weapon.dmg})</div>
       <div class="feat-line">🩸 Lineage: ${sel.race.trait}</div>
       <div class="feat-line">✦ Features: <b>${feats}</b></div>
-      ${sel.cls.spells?`<div class="feat-line">📖 Spells: ${sel.cls.spells.join(', ')}</div>`:''}`;
+      ${sel.cls.spells?`<div class="feat-line">📖 Spells: ${sel.cls.spells.join(', ')}</div>`:''}
+    </div></div>`;
   }else{
-    sum.innerHTML='<div class="feat-line" style="color:var(--muted)">Pick a lineage and class to preview your hero.</div>';
+    sum.innerHTML='<div class="feat-line" style="color:var(--muted)">Pick a lineage and class to preview your hero — their portrait appears here.</div>';
   }
 }
 const FEAT_NAMES={second_wind:'Second Wind',action_surge:'Action Surge',extra_attack:'Extra Attack',rage:'Rage',reckless:'Reckless Attack',sneak_attack:'Sneak Attack',cunning_dash:'Cunning Action',evasion:'Evasion',hunters_mark:"Hunter's Mark",volley:'Volley',arcane_recovery:'Arcane Recovery',turn_undead:'Turn Undead',channel_heal:'Channel Divinity',divine_smite:'Divine Smite',lay_on_hands:'Lay on Hands',aura:'Aura of Protection'};
