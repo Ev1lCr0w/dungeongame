@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Dungeons & Dragons — Depths of the Dread Lich</title>
+<title>Depths of the Dread Lich</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -207,7 +207,7 @@ button{font-family:inherit}
 <section id="s-title">
   <canvas id="title-canvas"></canvas>
   <div class="title-front">
-    <div class="sub">DUNGEONS &amp; DRAGONS</div>
+    <div class="sub">A ROGUELIKE DUNGEON CRAWLER</div>
     <h1>DEPTHS OF THE<br>DREAD LICH</h1>
     <div class="title-rule"></div>
     <p class="tag">Descend ten floors of a cursed dungeon. Roll the dice, brave the dark, and slay the Dread Lich Vol'tharix before he drains the world of life.</p>
@@ -468,7 +468,7 @@ const MONSTERS={
   ogre:{name:'Ogre',glyph:'🪨',col:'#a1887f',hp:'7d10+21',ac:11,atk:6,dmg:'2d8+4',xp:280,gold:[10,40],loot:'Greater Potion',save:{dex:-1,con:4},tier:2},
   wraith:{name:'Wraith',glyph:'👻',col:'#80cbc4',hp:'4d8+8',ac:13,atk:6,dmg:'2d6+3',xp:240,gold:[8,30],lifeSteal:true,save:{dex:3,con:2},undead:true,tier:2},
   troll:{name:'Troll',glyph:'🧌',col:'#8e44ad',hp:'8d10+40',ac:15,atk:7,dmg:'2d6+4',xp:420,gold:[15,55],loot:'Troll Hide',regen:6,save:{dex:1,con:5},tier:2},
-  mindflayer:{name:'Mind Flayer',glyph:'🦑',col:'#9b59b6',hp:'10d8+10',ac:15,atk:7,dmg:'2d8+3',xp:520,gold:[40,90],stun:true,save:{dex:3,con:2,int:6},tier:3},
+  mindflayer:{name:'Deep Horror',glyph:'🦑',col:'#9b59b6',hp:'10d8+10',ac:15,atk:7,dmg:'2d8+3',xp:520,gold:[40,90],stun:true,save:{dex:3,con:2,int:6},tier:3},
   vampire:{name:'Vampire',glyph:'🧛',col:'#c0392b',hp:'12d8+24',ac:16,atk:8,dmg:'2d6+4',xp:680,gold:[60,120],lifeSteal:true,loot:'Cloak of Bats',save:{dex:5,con:4},undead:true,boss:true,tier:3},
   dragon:{name:'Young Red Dragon',glyph:'🐉',col:'#e67e22',hp:'17d10+85',ac:18,atk:10,dmg:'2d10+6',xp:1800,gold:[200,400],breath:'8d6',breathType:'fire',resist:'fire',vuln:'frost',loot:'Dragon Scale Mail',save:{dex:4,con:6},boss:true,tier:4},
   wyrmling:{name:'Dragon Wyrmling',glyph:'🐲',col:'#58d68d',hp:'5d10+10',ac:16,atk:6,dmg:'2d6+3',xp:400,gold:[20,70],breath:'4d6',breathType:'fire',resist:'fire',vuln:'frost',loot:'Health Potion',save:{dex:3,con:3},tier:3},
