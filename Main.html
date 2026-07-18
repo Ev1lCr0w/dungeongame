@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Depths of the Dread Lich</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
@@ -32,7 +32,7 @@ button{font-family:inherit}
 .btn-purple{border-color:#7d3c98;color:#d7a8e8}
 
 /* ───── Title ───── */
-#s-title{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;padding:40px;position:relative;overflow:hidden}
+#s-title{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;height:100dvh;text-align:center;padding:40px;position:relative;overflow:hidden}
 #title-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:0}
 .title-front{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;animation:fadeUp 1s ease}
 #s-title .sub{font-family:'Cinzel',serif;color:var(--gold);letter-spacing:8px;font-size:1rem;opacity:.85}
@@ -45,7 +45,7 @@ button{font-family:inherit}
 @keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
 
 /* ───── Character Create ───── */
-#s-create{display:none;height:100vh;overflow-y:auto;padding:22px;max-width:1000px;margin:0 auto;animation:fadeUp .4s ease}
+#s-create{display:none;height:100vh;height:100dvh;overflow-y:auto;padding:22px;max-width:1000px;margin:0 auto;animation:fadeUp .4s ease}
 #s-create h2{font-family:'Cinzel',serif;font-weight:900;font-size:2rem;color:var(--gold2);text-align:center;margin-bottom:6px;text-shadow:0 0 30px rgba(201,162,39,.5)}
 #s-create .h2sub{text-align:center;color:var(--muted);font-style:italic;margin-bottom:20px}
 .csec{background:linear-gradient(180deg,var(--surface),#120c16);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
@@ -70,7 +70,7 @@ button{font-family:inherit}
 .feat-line b{color:var(--gold2);font-weight:600}
 
 /* ───── Game layout ───── */
-#s-game{display:none;height:100vh;flex-direction:row;overflow:hidden}
+#s-game{display:none;height:100vh;height:100dvh;flex-direction:row;overflow:hidden}
 #stage{position:relative;flex:1;min-width:0;background:#000;overflow:hidden}
 #game-canvas{display:block;width:100%;height:100%}
 #fx-canvas{position:absolute;inset:0;pointer-events:none}
@@ -80,6 +80,25 @@ button{font-family:inherit}
 
 /* Sidebar */
 #sidebar{width:280px;flex-shrink:0;background:linear-gradient(180deg,#161018,#0e0a12);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+
+/* ───── Touch / mobile controls ───── */
+#m-dpad,#m-actions{display:none}
+body.mobile #sidebar{position:fixed;top:0;right:0;height:100%;width:min(300px,86%);z-index:44;transform:translateX(101%);transition:transform .24s ease;box-shadow:-8px 0 30px rgba(0,0,0,.6)}
+body.mobile.drawer #sidebar{transform:none}
+body.mobile #minimap{width:78px;height:54px;top:8px;right:8px}
+body.mobile #msg-log{width:min(58%,320px);max-height:22%;bottom:auto;top:44px;left:8px;font-size:.8rem}
+body.mobile #hint-box,body.mobile #hint-chip{display:none}
+body.mobile #m-dpad,body.mobile #m-actions{display:grid}
+#m-dpad{position:absolute;left:12px;bottom:14px;z-index:42;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px;touch-action:none}
+.dpb{background:rgba(24,16,26,.82);border:1px solid var(--border2);color:var(--gold2);border-radius:9px;font-size:1.1rem;display:flex;align-items:center;justify-content:center;-webkit-user-select:none;user-select:none;touch-action:none}
+.dpb:active{background:rgba(74,53,32,.9)}
+.dpb-u{grid-area:1/2}.dpb-l{grid-area:2/1}.dpb-c{grid-area:2/2;font-size:.9rem;color:var(--muted)}.dpb-r{grid-area:2/3}.dpb-d{grid-area:3/2}
+#m-actions{position:absolute;right:12px;bottom:14px;z-index:42;grid-auto-flow:row;gap:7px;touch-action:none}
+.mact{width:52px;height:44px;background:rgba(24,16,26,.86);border:1px solid var(--gold);color:var(--gold2);border-radius:9px;font-size:1.25rem;display:flex;align-items:center;justify-content:center;position:relative;touch-action:none}
+.mact:active{background:rgba(74,53,32,.9)}
+.mact.disabled{opacity:.4}
+#m-drawer-x{display:none}
+body.mobile.drawer #m-drawer-x{display:flex;position:fixed;top:8px;right:8px;z-index:46;width:34px;height:34px;align-items:center;justify-content:center;background:rgba(24,16,26,.9);border:1px solid var(--gold);border-radius:8px;color:var(--gold2);font-size:1.1rem}
 .sb-head{padding:12px 14px 10px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
 .sb-name{font-family:'Cinzel',serif;color:var(--gold2);font-size:1.15rem;font-weight:700}
 .sb-meta{color:var(--muted);font-size:.8rem;margin-top:1px}
@@ -280,6 +299,15 @@ button{font-family:inherit}
     <div id="msg-log"></div>
     <div class="hint" id="hint-box"><kbd>WASD</kbd>/<kbd>↑↓←→</kbd> move · bump to attack · <kbd>Space</kbd> wait · click tile to path / enemy to fire<br><kbd>Q</kbd> cast · <kbd>E</kbd> pack · <kbd>F</kbd> abilities · <kbd>R</kbd> rest · <kbd>C</kbd> sheet · <kbd>M</kbd> mute</div>
     <div id="hint-chip" title="Toggle controls legend">⌨ Controls</div>
+    <!-- Touch controls (mobile only) -->
+    <div id="m-dpad">
+      <button class="dpb dpb-u" data-mv="0,-1">▲</button>
+      <button class="dpb dpb-l" data-mv="-1,0">◀</button>
+      <button class="dpb dpb-c" data-mv="wait">◦</button>
+      <button class="dpb dpb-r" data-mv="1,0">▶</button>
+      <button class="dpb dpb-d" data-mv="0,1">▼</button>
+    </div>
+    <div id="m-actions"></div>
   </div>
   <aside id="sidebar">
     <div class="sb-head">
@@ -289,6 +317,7 @@ button{font-family:inherit}
     <div class="sb-body" id="sb-body"></div>
     <div class="act-bar" id="act-bar"></div>
   </aside>
+  <div id="m-drawer-x">✕</div>
 </section>
 
 <!-- Overlays -->
@@ -3093,6 +3122,7 @@ function renderActions(){
   if(q('ab-spell'))q('ab-spell').onclick=()=>openSpellMenu(null);
   if(q('ab-feat'))q('ab-feat').onclick=openAbilities;
   if(q('ab-breath'))q('ab-breath').onclick=breathWeapon;
+  renderMobileActions();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3753,9 +3783,70 @@ window.addEventListener('resize',()=>{if(canvas){resizeCanvas();updateCamera();}
 // canvas click
 function bindCanvas(){
   document.getElementById('stage').addEventListener('click',e=>{
+    if(e.target.closest('#m-dpad,#m-actions'))return; // let control buttons handle their own taps
+    if(document.body.classList.contains('drawer')){toggleDrawer(false);return;} // tap map to dismiss stats
     const rect=canvas.getBoundingClientRect();
     handleClick(e.clientX-rect.left,e.clientY-rect.top);
   });
+}
+
+// ── MOBILE / TOUCH CONTROLS ──
+let MOBILE=false;
+function detectMobile(){
+  MOBILE=window.matchMedia('(pointer:coarse)').matches||window.innerWidth<=820;
+  document.body.classList.toggle('mobile',MOBILE);
+  if(!MOBILE)document.body.classList.remove('drawer');
+  const sb=document.getElementById('sidebar');
+  // drive the drawer position by inline transform (beats the CSS cascade reliably)
+  sb.style.transform=MOBILE?(document.body.classList.contains('drawer')?'translateX(0)':'translateX(101%)'):'';
+  if(canvas){resizeCanvas();updateCamera();}
+}
+function toggleDrawer(open){
+  const o=open===undefined?!document.body.classList.contains('drawer'):open;
+  document.body.classList.toggle('drawer',o);
+  const sb=document.getElementById('sidebar');
+  if(MOBILE)sb.style.transform=o?'translateX(0)':'translateX(101%)';
+}
+// build the mobile action cluster to match the current hero (mirrors the sidebar act-bar)
+function renderMobileActions(){
+  const bar=document.getElementById('m-actions');if(!bar||!G.cls)return;
+  let html='';
+  if(G.spells&&G.spells.length)html+='<button class="mact" data-mact="cast">✦</button>';
+  html+='<button class="mact" data-mact="pack">🎒</button>';
+  if((G.activeFeats||[]).some(f=>ACTIVATABLE.includes(f)))html+='<button class="mact" data-mact="abil">✨</button>';
+  if(G.race.id==='dragonborn')html+='<button class="mact" data-mact="breath">🔥</button>';
+  html+='<button class="mact" data-mact="rest">🏕</button>';
+  html+='<button class="mact" data-mact="stats">📊</button>';
+  bar.innerHTML=html;
+}
+function doMobileAction(a){
+  if(a==='stats'){toggleDrawer();return;}
+  toggleDrawer(false);
+  if(a==='cast')openSpellMenu(null);
+  else if(a==='pack')openInventory();
+  else if(a==='abil')openAbilities();
+  else if(a==='breath')breathWeapon();
+  else if(a==='rest')shortRest();
+}
+function setupMobile(){
+  detectMobile();
+  window.addEventListener('resize',detectMobile);
+  window.addEventListener('orientationchange',detectMobile);
+  // D-pad: pointerdown for instant, no-lag response
+  document.getElementById('m-dpad').addEventListener('pointerdown',e=>{
+    const b=e.target.closest('[data-mv]');if(!b)return;
+    e.preventDefault();
+    initAudio();
+    const mv=b.dataset.mv;
+    if(mv==='wait')waitTurn();
+    else{const[dx,dy]=mv.split(',').map(Number);tryMove(dx,dy);}
+  });
+  // action cluster (delegated; rebuilt per hero)
+  document.getElementById('m-actions').addEventListener('pointerdown',e=>{
+    const b=e.target.closest('[data-mact]');if(!b)return;
+    e.preventDefault();initAudio();doMobileAction(b.dataset.mact);
+  });
+  document.getElementById('m-drawer-x').addEventListener('click',()=>toggleDrawer(false));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3836,6 +3927,7 @@ sbHead.style.cursor='pointer';sbHead.title='Character sheet (C)';
 sbHead.onclick=openCharSheet;
 
 bindCanvas();
+setupMobile();
 titleBG();
 </script>
 </body>
