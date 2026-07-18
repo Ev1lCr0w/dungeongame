@@ -434,8 +434,8 @@ function screamVoice(){
   noise(0.5,0.11,4200,0.03);          // breathiness
   tone(660,0.14,'sine',0.05,460,dur); // little gasp after
 }
-// ═══ TITLE MUSIC: a slow, ominous synthesized loop (Am · F · G · E) ═══
-const MUSIC={on:false,timer:null,step:0};
+// ═══ REACTIVE MUSIC: one scheduler, four moods — title, explore, combat, boss ═══
+const MUSIC={on:false,timer:null,step:0,mode:'title'};
 const M_PROG=[ // [bass, chord tones…]
   [110.00,[220.00,261.63,329.63]],  // A minor
   [ 87.31,[220.00,261.63,349.23]],  // F major
@@ -444,22 +444,54 @@ const M_PROG=[ // [bass, chord tones…]
 ];
 const M_MELODY=[440,null,523.25,440,null,329.63,null,null, 349.23,null,440,null,523.25,null,null,null,
                 392,null,493.88,587.33,null,493.88,null,null, 329.63,null,415.30,null,329.63,null,null,null];
+const M_EXPLORE=[null,null,329.63,null,null,null,null,null, 293.66,null,null,null,261.63,null,null,null,
+                 null,null,220,null,null,null,246.94,null, null,null,null,null,329.63,null,null,null];
+function musicMode(){
+  if(getComputedStyle(document.getElementById('s-game')).display==='none')return 'title';
+  if(gameOver||typeof G==='undefined'||!G.cls)return 'silent';
+  const bossVis=ENEMIES.some(e=>!e.dead&&e.boss&&VIS[e.y]&&VIS[e.y][e.x]);
+  if(bossVis)return 'boss';
+  const danger=ENEMIES.some(e=>!e.dead&&VIS[e.y]&&VIS[e.y][e.x]&&dist(e,G)<=8);
+  return danger?'combat':'explore';
+}
+function musTick(){
+  const s=MUSIC.step++;
+  const mode=musicMode();
+  if(mode!==MUSIC.mode){MUSIC.mode=mode;MUSIC.step=0;} // restart phrase on mood change
+  if(!soundOn||mode==='silent')return;
+  const chord=M_PROG[(s>>3)%4];
+  if(mode==='title'){
+    if(s%8===0){tone(chord[0],2.9,'triangle',0.10,chord[0]*0.99);tone(chord[0]*2,2.9,'sine',0.045);}
+    const arp=chord[1][[0,1,2,1][s%4]];
+    tone(arp,0.34,'triangle',0.045,arp*0.995);
+    const mel=M_MELODY[s%32];
+    if(mel)tone(mel,0.62,'sine',0.075,mel*0.985);
+  }else if(mode==='explore'){
+    // sparse, held drones — the dungeon breathing
+    const ch=M_PROG[(s>>4)%4];
+    if(s%16===0)tone(ch[0],4.2,'sine',0.06,ch[0]*0.995);
+    if(s%16===8)tone(ch[0]*1.5,2.2,'sine',0.03);
+    const mel=M_EXPLORE[s%32];
+    if(mel)tone(mel,1.1,'sine',0.04,mel*0.99);
+  }else if(mode==='combat'){
+    // driving minor pulse
+    if(s%2===0)tone(chord[0],0.17,'triangle',0.085);
+    if(s%8===0)tone(chord[0]/2>40?chord[0]/2:chord[0],1.4,'sawtooth',0.045,chord[0]*0.49);
+    if(s%2===1){const arp=chord[1][[0,2,1,2][(s>>1)%4]];tone(arp*2,0.15,'square',0.026);}
+    if(s%8===6)noise(0.05,0.07,3200); // hat tick
+  }else if(mode==='boss'){
+    // pounding fifths, war-drums, and a chromatic menace motif
+    const root=(s%32)<16?82.41:77.78; // E → Eb, unsettling shift
+    if(s%2===0){tone(root,0.22,'sawtooth',0.10,root*0.99);tone(root*1.5,0.22,'sawtooth',0.055);}
+    if(s%4===0)tone(55,0.13,'sine',0.5,36);     // kick drum
+    if(s%8===4)noise(0.09,0.13,2600);            // snare crack
+    if(s%4===2){const mel=[329.63,311.13,293.66,311.13][(s>>2)%4];tone(mel,0.3,'square',0.05,mel*0.99);}
+  }
+}
 function startMusic(){
   if(MUSIC.on||!AC)return;
   MUSIC.on=true;MUSIC.step=0;
-  MUSIC.timer=setInterval(()=>{
-    if(!soundOn)return; // muted: keep time silently
-    const s=MUSIC.step,chord=M_PROG[(s>>3)%4];
-    if(s%8===0){ // bass drone on each chord change
-      tone(chord[0],2.9,'triangle',0.10,chord[0]*0.99);
-      tone(chord[0]*2,2.9,'sine',0.045);
-    }
-    const arp=chord[1][[0,1,2,1][s%4]];   // gentle broken chord
-    tone(arp,0.34,'triangle',0.045,arp*0.995);
-    const mel=M_MELODY[s%32];              // sparse minor melody
-    if(mel)tone(mel,0.62,'sine',0.075,mel*0.985);
-    MUSIC.step++;
-  },340);
+  MUSIC.timer=setInterval(musTick,340);
 }
 function stopMusic(){
   if(MUSIC.timer)clearInterval(MUSIC.timer);
@@ -481,11 +513,9 @@ function playAmbience(){
 }
 document.addEventListener('pointerdown',initAudio,{once:true});
 document.addEventListener('keydown',initAudio,{once:true});
-// browsers only allow audio after a gesture — start the title music on the first one
+// browsers only allow audio after a gesture — start the scheduler on the first one
 function maybeStartMusic(){
-  if(!AC)return;
-  const inGame=getComputedStyle(document.getElementById('s-game')).display!=='none';
-  if(!inGame&&!MUSIC.on)startMusic();
+  if(AC&&!MUSIC.on)startMusic();
 }
 document.addEventListener('pointerdown',maybeStartMusic);
 document.addEventListener('keydown',maybeStartMusic);
@@ -1163,6 +1193,7 @@ function checkDragonFright(){
     if(VIS[e.y]&&VIS[e.y][e.x]&&dist(e,G)<=8){
       e.screamedAt=true;
       G.screams=(G.screams||0)+1;
+      if(statBump('screams')>=10)award('coward');
       sfx('scream');
       spawnText(G.x,G.y-0.5,'AIIIEEEE!!','#ff9b8d',18);
       spawnText(G.x+0.4,G.y-1,'😱','#fff',20);
@@ -1338,6 +1369,9 @@ function damageEnemy(e,dmg,type){
 function killEnemy(e){
   e.dead=true;
   G.kills=(G.kills||0)+1;
+  award('first_blood');
+  if(e.id==='goblin'&&statBump('goblinKills')>=25)award('goblin_bane');
+  if(/dragon/i.test(e.name)&&statBump('dragonKills')>=5)award('dragonslayer');
   GHOSTS.push({glyph:e.glyph,x:e.x,y:e.y,t:1,big:e.big});
   spawnParticle(e.x,e.y,e.col,24,2.4);
   spawnText(e.x,e.y,'☠','#fff',26);
@@ -1579,6 +1613,7 @@ function enemyAttack(e,cb){
   if(dodged){msg(`${G.name} deftly dodges the ${e.name}!`,'sys');spawnText(G.x,G.y,'dodge','#5dade2',14);setTimeout(cb,180);return;}
   if(!crit&&atk<ac){msg(`The ${e.name} attacks but misses (${atk} vs AC ${ac}).`,'sys');spawnText(G.x,G.y,'miss','#9b8870',14);lungeEnemy(e);setTimeout(cb,180);return;}
   let dmg=roll(e.dmg);if(crit)dmg+=roll(e.dmg);
+  dmg+=e.bonusDmg||0; // New Game+ ferocity
   // barbarian rage resistance
   if(G.raging)dmg=Math.floor(dmg/2);
   dmg=Math.max(1,dmg);
@@ -1610,6 +1645,7 @@ function damagePlayer(dmg){
   dmg=Math.max(1,Math.round(dmg*(G.diff==='easy'?0.75:G.diff==='hard'?1.2:1)));
   if(G.tempHP>0){const a=Math.min(G.tempHP,dmg);G.tempHP-=a;dmg-=a;}
   G.hp-=dmg;shake=Math.max(shake,Math.min(12,dmg/2+3));
+  G.floorDamaged=true; // spoils the Untouchable achievement for this floor
   G.hitT=1; // flinch animation
   sfx('enemyhit');
   spawnText(G.x,G.y,`-${dmg}`,'#ff5050',22);spawnParticle(G.x,G.y,'#e74c3c',8);
@@ -1796,6 +1832,8 @@ function loadFloor(floor){
   MAP=m.map;ROOMS=m.rooms;
   EXPLORED=Array.from({length:MH},()=>Array(MW).fill(false));
   THEME=themeFor(floor);
+  G.floorDamaged=false; // fresh Untouchable attempt
+  if(floor===10)award('deep10');
   // place player in first room
   const r0=ROOMS[0];G.x=r0.cx;G.y=r0.cy;G.rx=G.x;G.ry=G.y;
   ENEMIES=[];ITEMS_ON=[];PARTICLES=[];FLOATERS=[];ANIMS=[];DECOR=[];STAINS=[];TRAPS=[];GHOSTS=[];
@@ -1988,7 +2026,14 @@ function spawnMonster(id,x,y){
   const def=MONSTERS[id];
   let hp=roll(def.hp);
   if(G.diff==='hard')hp=Math.floor(hp*1.2);
+  const ng=G.ng||0;
+  if(ng)hp=Math.floor(hp*(1+0.45*ng)); // New Game+ scaling
   ENEMIES.push({...def,id,x,y,rx:x,ry:y,hp,maxHp:hp,flash:0,hitShake:0,gold:def.gold});
+  if(ng){
+    const m=ENEMIES[ENEMIES.length-1];
+    m.atk+=ng;m.bonusDmg=2*ng;
+    m.xp=Math.floor(m.xp*(1+0.3*ng));
+  }
 }
 // scatter furniture & props through the rooms (interior tiles only, so corridors stay open)
 function placeDecor(floor){
@@ -2026,6 +2071,7 @@ function freeWolf(d){
     hp:10+G.floor*3,maxHp:10+G.floor*3,ac:12,
     atk:3+Math.floor(G.floor/2),dmg:'1d6+'+Math.max(1,Math.floor(G.floor/3)),downed:false};
   sfx('heal');spawnParticle(d.x,d.y,'#aed6f1',14,2);
+  award('wolf_friend');
   startDialogue([
     [nm+' the Wolf','🐺','*The cage creaks open. The wolf noses your hand… then takes its place at your side.*'],
     [G.name,(G.emoji||G.race.emoji),'"Easy, friend. Let\'s hunt."'],
@@ -2299,6 +2345,7 @@ function stairPrompt(){
 }
 function nextFloor(){
   if(G.floor>=10)return;
+  if(!G.floorDamaged&&ENEMIES.every(e=>e.dead))award('untouchable');
   busy=true;sfx('descend');
   const next=G.floor+1;
   showShop(()=>{flashBanner('Descending…','#c9a227');setTimeout(()=>loadFloor(next),350);});
@@ -3028,8 +3075,10 @@ function updateSidebar(){
   if(!G.cls)return;
   document.getElementById('sb-name').textContent=G.name;
   const clsStr=Object.keys(G.classLevels).map(id=>`${CLASS_BY_ID[id].name} ${G.classLevels[id]}`).join(' / ');
-  const gSym=(G.daily?'📅 ':'')+(G.diff==='hard'?'💀 ':'')+(G.gender?(G.gender==='f'?'♀ ':'♂ '):'');
+  const gSym=(G.ng?`🔁${G.ng} `:'')+(G.daily?'📅 ':'')+(G.diff==='hard'?'💀 ':'')+(G.gender?(G.gender==='f'?'♀ ':'♂ '):'');
   document.getElementById('sb-meta').innerHTML=`${gSym}${G.race.name} · ${clsStr} · Lv ${G.level} · ${G.gold}🪙`;
+  if(G.gold>=500)award('rich');
+  if(setCount('legendary')>=3)award('legend_set');
   const body=document.getElementById('sb-body');
   const hpPct=Math.max(0,G.hp/G.maxHp*100);
   const xpNeed=lvlXP(G.level),xpPrev=lvlXP(G.level-1)||0;
@@ -3422,7 +3471,6 @@ function loadGame(){
     THEME=themeFor(G.floor);initMotes();
     gameOver=false;busy=false;pendingPath=null;
     document.getElementById('s-title').style.display='none';
-    stopMusic();
     document.getElementById('s-create').style.display='none';
     document.getElementById('s-game').style.display='flex';
     canvas=document.getElementById('game-canvas');ctx=canvas.getContext('2d');
@@ -3438,6 +3486,58 @@ function loadGame(){
     armHintAutoHide();if(!render._started){render._started=true;requestAnimationFrame(render);}
     return true;
   }catch(e){return false;}
+}
+
+// ── ACHIEVEMENTS (localStorage, lifetime) ──
+const ACHV=[
+  {id:'first_blood',name:'First Blood',emoji:'🗡️',desc:'Slay your first monster.'},
+  {id:'goblin_bane',name:"Goblin's Bane",emoji:'👺',desc:'Slay 25 goblins (lifetime).'},
+  {id:'dragonslayer',name:'Dragonslayer',emoji:'🐉',desc:'Slay 5 dragons (lifetime).'},
+  {id:'coward',name:'The Coward',emoji:'😱',desc:'Scream at 10 dragons (lifetime).'},
+  {id:'untouchable',name:'Untouchable',emoji:'🛡️',desc:'Clear every monster on a floor without taking damage.'},
+  {id:'rich',name:'Dragon Hoard',emoji:'🪙',desc:'Hold 500 gold at once.'},
+  {id:'legend_set',name:'Golden Age',emoji:'🌟',desc:'Wear a full Legendary set.'},
+  {id:'wolf_friend',name:'Pack Leader',emoji:'🐺',desc:'Rescue a wolf companion.'},
+  {id:'deep10',name:'The Sanctum',emoji:'☠️',desc:'Set foot on floor 10.'},
+  {id:'lichslayer',name:'Realm Saver',emoji:'⚜️',desc:"Slay Vol'tharix."},
+  {id:'hardcore_win',name:'Iron Legend',emoji:'💀',desc:'Win a Hardcore run.'},
+  {id:'ng_plus',name:'Again!',emoji:'🔁',desc:'Begin a New Game+.'},
+];
+function achvLoad(){try{return JSON.parse(localStorage.getItem('dnd_achv')||'{}');}catch(e){return{};}}
+function award(id){
+  try{
+    const earned=achvLoad();
+    if(earned[id])return;
+    earned[id]=new Date().toISOString().slice(0,10);
+    localStorage.setItem('dnd_achv',JSON.stringify(earned));
+    const a=ACHV.find(x=>x.id===id);
+    if(a){sfx('levelup');flashBanner(`🏆 ${a.name}`,'#f0d472');msg(`🏆 Achievement unlocked: ${a.name} — ${a.desc}`,'loot');}
+  }catch(e){}
+}
+// lifetime counters that feed achievements
+function statBump(k,n){
+  try{
+    const s=JSON.parse(localStorage.getItem('dnd_stats')||'{}');
+    s[k]=(s[k]||0)+(n||1);
+    localStorage.setItem('dnd_stats',JSON.stringify(s));
+    return s[k];
+  }catch(e){return 0;}
+}
+
+// ── NEW GAME+ : keep your hero, the dungeon reshapes itself deadlier ──
+function startNewGamePlus(){
+  award('ng_plus');
+  gameOver=false;
+  G.ng=(G.ng||0)+1;
+  G.hp=G.maxHp;G.tempHP=0;G.slots=G.maxSlots;G.poisonT=0;G.raging=false;G.conds=[];
+  resetClassUses();
+  if(PET){PET.hp=PET.maxHp;PET.downed=false;}
+  closeGeneric();
+  document.getElementById('generic-panel').style.borderColor='';
+  msg(`↻ NEW GAME+${G.ng}: the dungeon reshapes itself, deadlier than before…`,'warn');
+  flashBanner(`NEW GAME+${G.ng}`,'#d7a8e8');
+  sfx('descend');
+  loadFloor(1);
 }
 
 // ── RUN HISTORY (localStorage) ──
@@ -3463,7 +3563,7 @@ function runShareText(result){
   const dayN=Math.floor((d-new Date(d.getFullYear(),0,1))/864e5)+1;
   const head=G.daily?`📅 Dread Lich Daily #${String(d.getFullYear()).slice(2)}${String(dayN).padStart(3,'0')}`:'🐉 Depths of the Dread Lich';
   const clsStr=Object.keys(G.classLevels).map(id=>`${CLASS_BY_ID[id].name} ${G.classLevels[id]}`).join('/');
-  const diffTag=G.diff==='hard'?' 💀':G.diff==='easy'?' 🌿':'';
+  const diffTag=(G.diff==='hard'?' 💀':G.diff==='easy'?' 🌿':'')+(G.ng?` 🔁NG+${G.ng}`:'');
   return `${head}${diffTag}\n`+
     `${result==='won'?'⚜ SLEW THE DREAD LICH':'☠ Fell on Floor '+G.floor+' of 10'}\n`+
     `${G.emoji||'🧙'} Lv ${G.level} ${G.race.name} ${clsStr}${PET?` + 🐺 ${PET.name}`:''}\n`+
@@ -3501,6 +3601,18 @@ function openHall(){
     });
     html+='</div>';
   }
+  // trophy case
+  const earned=achvLoad();
+  const got=ACHV.filter(a=>earned[a.id]).length;
+  html+=`<div class="sb-sec-title" style="margin-top:14px">🏆 Achievements <span style="font-weight:400;color:var(--muted)">${got}/${ACHV.length}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-top:8px">`;
+  ACHV.forEach(a=>{
+    const has=!!earned[a.id];
+    html+=`<div title="${a.desc.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:7px;padding:6px 9px;border:1px solid ${has?'var(--gold)':'var(--border)'};border-radius:7px;background:${has?'rgba(201,162,39,.10)':'var(--surface2)'};opacity:${has?1:.45}">
+      <span style="font-size:1.15rem">${has?a.emoji:'🔒'}</span>
+      <span style="font-size:.74rem;line-height:1.2;color:${has?'var(--gold2)':'var(--muted)'}">${a.name}</span></div>`;
+  });
+  html+='</div>';
   html+='<div class="panel-actions"><button class="btn btn-sm" id="hall-close">Close</button></div>';
   p.innerHTML=html;ov.classList.add('open');
   document.getElementById('hall-close').onclick=closeGeneric;
@@ -3561,6 +3673,8 @@ function doom(){
 }
 function victory(){
   if(gameOver)return;gameOver=true;sfx('victory');
+  award('lichslayer');
+  if(G.diff==='hard')award('hardcore_win');
   saveRun('won');clearSave();
   spawnExplosion(G.x,G.y,3,'#f0d472');
   const ov=document.getElementById('generic-overlay'),p=document.getElementById('generic-panel');
@@ -3573,9 +3687,10 @@ function victory(){
       ${bestLine()}
       <span style="color:var(--muted);font-style:italic">Bards will sing of this deed for a thousand years.</span>
     </div>
-    <div class="panel-actions"><button class="btn btn-sm btn-blue" id="vic-share">📋 Share</button><button class="btn" id="vic-again">⚔ Play Again</button></div>`;
+    <div class="panel-actions"><button class="btn btn-sm btn-blue" id="vic-share">📋 Share</button><button class="btn btn-purple" id="vic-ng">↻ New Game+${(G.ng||0)+1}</button><button class="btn" id="vic-again">⚔ Play Again</button></div>`;
   ov.classList.add('open');
   document.getElementById('vic-again').onclick=()=>location.reload();
+  document.getElementById('vic-ng').onclick=startNewGamePlus;
   wireShareBtn('vic-share','won');
 }
 
@@ -3733,7 +3848,6 @@ function startGame(){
   recalcFeats();
   G.maxSlots=spellSlotsFor(G);G.slots=G.maxSlots;
   // init canvas
-  stopMusic();
   document.getElementById('s-create').style.display='none';
   document.getElementById('s-game').style.display='flex';
   canvas=document.getElementById('game-canvas');ctx=canvas.getContext('2d');
