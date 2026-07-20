@@ -615,6 +615,27 @@ const SHOP_STOCK=[
   {name:'Leather Boots',price:30},{name:'Elven Boots',price:70},{name:'Ring of Regeneration',price:130},
 ];
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(RAND()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+// what the merchant pays: half of an item's value, with rarity & reforge premiums
+const EXTRA_VALUE={'Vial of Revive':90,'Troll Hide':70,'Dragon Scale Mail':160,'Cloak of Bats':80,'Greataxe +1':60};
+function baseValue(name){
+  const root=name.replace(/^(Rare|Legendary) /,'');
+  const root2=root.replace(/ \+\d+$/,'');
+  const st=SHOP_STOCK.find(s=>s.name===root)||SHOP_STOCK.find(s=>s.name===root2);
+  if(st)return st.price;
+  if(EXTRA_VALUE[root])return EXTRA_VALUE[root];
+  if(EXTRA_VALUE[root2])return EXTRA_VALUE[root2];
+  const it=ITEMS[name];
+  if(!it)return 10;
+  return it.slot?40:12; // plain gear (class weapons etc.) vs misc consumables
+}
+function sellPrice(name){
+  let v=baseValue(name);
+  const it=ITEMS[name]||{};
+  if(it.rarity==='rare')v*=2;else if(it.rarity==='legendary')v*=4;
+  const m=name.match(/ \+(\d+)$/);
+  if(m)v+=45*+m[1]; // blacksmith work holds value
+  return Math.max(1,Math.floor(v*0.5));
+}
 
 // Monsters with 5e-flavored stats. ac, hpDie roll, attack bonus, dmg, abilities/saves
 const MONSTERS={
@@ -2413,6 +2434,16 @@ function showShop(cb){
         <h4 style="color:${it.col}">${it.sym} ${s.name} <span style="margin-left:auto;color:#f0d472">${s.price}g</span></h4>
         <p>${it.desc} <span style="color:var(--muted)">(${it.type})</span></p></div>`;
     });
+    // sell from your pack (merchant pays half value; rarity & reforges appraised)
+    const sellables=Object.keys(G.inv).filter(k=>G.inv[k]>0&&ITEMS[k]);
+    if(sellables.length){
+      html+=`</div><div class="sb-sec-title" style="margin:14px 0 8px">💰 Sell from your pack</div><div class="choice-list" style="margin-top:0">`;
+      sellables.forEach(n=>{
+        const it=ITEMS[n];
+        html+=`<div class="choice" data-sell="${n}" style="padding:7px 12px">
+          <h4 style="color:${it.col};font-size:.88rem">${it.sym} ${n} ×${G.inv[n]} <span style="margin-left:auto;color:#7ee2a8">+${sellPrice(n)}g</span></h4></div>`;
+      });
+    }
     html+=`</div><div class="panel-actions"><button class="btn" id="shop-leave">Descend to Floor ${G.floor+1} →</button></div>`;
     p.innerHTML=html;ov.classList.add('open');
     document.getElementById('shop-leave').onclick=()=>{p.style.borderColor='';closeGeneric();cb();};
@@ -2428,6 +2459,15 @@ function showShop(cb){
         G.gold-=s.price;G.inv[s.name]=(G.inv[s.name]||0)+1;sfx('buy');
         msg(`Bought ${s.name} for ${s.price}g. (Equip gear from your Pack.)`,'loot');
       }
+      updateSidebar();render();
+    });
+    p.querySelectorAll('[data-sell]').forEach(el=>el.onclick=()=>{
+      const n=el.dataset.sell;
+      if(!G.inv[n])return;
+      const pay=sellPrice(n);
+      G.inv[n]--;G.gold+=pay;
+      sfx('gold');
+      msg(`Sold ${n} for ${pay}g.`,'loot');
       updateSidebar();render();
     });
     p.querySelectorAll('[data-smith]').forEach(el=>el.onclick=()=>{
