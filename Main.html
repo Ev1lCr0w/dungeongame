@@ -1784,12 +1784,39 @@ function tryMove(dx,dy){
   endPlayerTurn();
 }
 
+// ── UPGRADE ADVISOR: is this gear better than what's equipped in its slot? ──
+function avgRoll(str){
+  const m=String(str).match(/(\d+)d(\d+)([+-]\d+)?/);
+  if(!m)return parseInt(str)||0;
+  return +m[1]*(+m[2]+1)/2+(m[3]?+m[3]:0);
+}
+function gearScore(name){
+  const it=ITEMS[name];if(!it||!it.slot)return 0;
+  if(it.slot==='weapon')
+    return avgRoll(it.dmg)+(it.bonus?avgRoll(it.bonus):0)+(it.atk||0)*1.5+(it.ranged?1:0);
+  return (it.ac||0)*10+(it.maxhp||0)*0.8+(it.dodge||0)*60+(it.regen||0)*8+(it.save||0)*5+(it.fireResist?5:0);
+}
+function isUpgrade(name){
+  const it=ITEMS[name];if(!it||!it.slot||!G.cls)return false;
+  const cur=it.slot==='weapon'?(G.weapon&&G.weapon.name):(G.equip&&G.equip[it.slot]);
+  if(!cur)return true; // anything beats an empty slot
+  return gearScore(name)>gearScore(cur)+0.01;
+}
+function notifyIfUpgrade(name){
+  if(!isUpgrade(name))return;
+  const it=ITEMS[name];
+  const cur=it.slot==='weapon'?(G.weapon&&G.weapon.name):(G.equip&&G.equip[it.slot]);
+  spawnText(G.x,G.y-0.6,'⬆ UPGRADE!','#7ee2a8',15);
+  sfx('click');
+  msg(`⬆ ${name} beats your ${cur||'empty '+it.slot+' slot'} — open the Pack to equip!`,'heal');
+}
 function pickup(it){
   ITEMS_ON=ITEMS_ON.filter(i=>i!==it);
   sfx('gold');
   if(it.name==='__gold'){G.gold+=it.amt;msg(`Found ${it.amt} gold!`,'loot');return;}
   G.inv[it.name]=(G.inv[it.name]||0)+1;
   msg(`Picked up ${it.name}.`,'loot');spawnText(it.x,it.y,'+'+it.name,ITEMS[it.name].col,13);
+  notifyIfUpgrade(it.name);
 }
 function dropItem(x,y,name){
   // find empty adjacent if occupied
@@ -2243,7 +2270,7 @@ function resolveShrine(d){
     spawnText(G.x,G.y,`-${sac}`,'#ff5050',20);
     const gift=lootName(ELITE_GEAR[rnd(ELITE_GEAR.length)-1],G.floor+4);
     G.inv[gift]=(G.inv[gift]||0)+1;
-    msg(`⚱️ The altar drinks deep (−${sac} HP)… and yields a ${gift}!`,'loot');sfx('gold');
+    msg(`⚱️ The altar drinks deep (−${sac} HP)… and yields a ${gift}!`,'loot');sfx('gold');notifyIfUpgrade(gift);
   }else{ // idol
     G.gold-=50;sfx('buy');
     const xg=G.floor*40;G.xp+=xg;
@@ -2317,6 +2344,7 @@ function freePrisoner(d,extorted,angry){
   G.blessTurns=Math.max(G.blessTurns,10);
   startDialogue([['Freed Prisoner','🏃','"Bless you, hero! Take this — and may fortune guard your blade!"']],()=>{
     msg(`The prisoner rewards you: ${gold}g${extorted?' (persuasion bonus!)':''} and a ${gift}!`,'loot');
+    notifyIfUpgrade(gift);
     msg('You feel blessed (+1d4 attacks & saves, 10 turns).','magic');
     updateSidebar();
   });
@@ -2458,6 +2486,7 @@ function showShop(cb){
         const s=stock[+key];if(G.gold<s.price)return;
         G.gold-=s.price;G.inv[s.name]=(G.inv[s.name]||0)+1;sfx('buy');
         msg(`Bought ${s.name} for ${s.price}g. (Equip gear from your Pack.)`,'loot');
+        notifyIfUpgrade(s.name);
       }
       updateSidebar();render();
     });
@@ -3400,7 +3429,7 @@ function openInventory(reopen){
   keys.forEach(name=>{
     const it=ITEMS[name];if(!it)return;
     list+=`<div class="choice" data-item="${name}" style="padding:9px 12px">
-      <h4 style="color:${it.col};font-size:.92rem">${it.sym} ${name} ×${G.inv[name]} <span style="font-size:.72rem;color:var(--muted);margin-left:auto">${it.slot?'equip':it.type}</span></h4>
+      <h4 style="color:${it.col};font-size:.92rem">${isUpgrade(name)?'<span style=\"color:#7ee2a8\">⬆</span> ':''}${it.sym} ${name} ×${G.inv[name]} <span style="font-size:.72rem;color:var(--muted);margin-left:auto">${it.slot?(isUpgrade(name)?'upgrade!':'equip'):it.type}</span></h4>
       <p style="font-size:.8rem">${it.desc}</p></div>`;
   });
   list+='</div>';
