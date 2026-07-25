@@ -1936,6 +1936,13 @@ function stepPath(){
   if(!pendingPath||busy)return;
   const {tx,ty}=pendingPath;
   if(G.x===tx&&G.y===ty){pendingPath=null;return;}
+  // clicked a closed door: on arriving beside it, shoulder it open
+  const tdoor=doorClosedAt(tx,ty);
+  if(tdoor&&Math.max(Math.abs(G.x-tx),Math.abs(G.y-ty))<=1){
+    pendingPath=null;
+    tryMove(Math.sign(tx-G.x),Math.sign(ty-G.y));
+    return;
+  }
   // greedy
   let best=null,bestD=Math.abs(G.x-tx)+Math.abs(G.y-ty);
   for(const [dx,dy] of [[0,1],[0,-1],[1,0],[-1,0]]){
