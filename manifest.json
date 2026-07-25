@@ -1,0 +1,15 @@
+{
+  "name": "Depths of the Dread Lich",
+  "short_name": "Dread Lich",
+  "description": "A complete roguelike dungeon crawler. Descend ten floors, scream at dragons, slay Vol'tharix.",
+  "start_url": "./Main.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#08060a",
+  "theme_color": "#08060a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
