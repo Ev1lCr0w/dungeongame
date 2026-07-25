@@ -410,6 +410,7 @@ function sfx(type){
     case 'enemyhit': noise(0.1,0.22,600); tone(120,0.12,'sawtooth',0.16,70); break;
     case 'heartbeat': tone(58,0.11,'sine',0.5,38); tone(52,0.1,'sine',0.38,34,0.16); break;
     case 'door': noise(0.16,0.22,300); tone(84,0.28,'sawtooth',0.13,58); tone(160,0.07,'square',0.06,120,0.14); break;
+    case 'whoop': whoopVoice(); break;
     case 'bosshorn': tone(62,1.1,'sawtooth',0.28,58); tone(93,1.0,'sawtooth',0.16,88,0.08); tone(55,0.16,'sine',0.5,36,0.02); noise(0.3,0.1,900,0.1); break;
     case 'scream': screamVoice(); break;
   }
@@ -457,6 +458,27 @@ function screamVoice(){
   lfo.start(t);lfo.stop(t+dur+0.05);
   noise(0.5,0.11,4200,0.03);          // breathiness
   tone(660,0.14,'sine',0.05,460,dur); // little gasp after
+}
+// an ecstatic two-note "WOO-HOO!" for striking it rich
+function whoopVoice(){
+  if(!AC||!soundOn)return;
+  const t=AC.currentTime;
+  [[380,760,0],[470,1000,0.16]].forEach(([f0,f1,d])=>{
+    [0,8].forEach(det=>{
+      const o=AC.createOscillator();o.type='sawtooth';o.detune.value=det;
+      o.frequency.setValueAtTime(f0,t+d);
+      o.frequency.exponentialRampToValueAtTime(f1,t+d+0.12);
+      o.frequency.exponentialRampToValueAtTime(f1*0.85,t+d+0.21);
+      const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1150;bp.Q.value=2.4;
+      const g=AC.createGain();
+      g.gain.setValueAtTime(0.0001,t+d);
+      g.gain.exponentialRampToValueAtTime(0.3,t+d+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+d+0.23);
+      o.connect(g);g.connect(bp);bp.connect(masterGain);
+      o.start(t+d);o.stop(t+d+0.26);
+    });
+  });
+  noise(0.2,0.06,4200,0.02);
 }
 // ═══ REACTIVE MUSIC: one scheduler, four moods — title, explore, combat, boss ═══
 const MUSIC={on:false,timer:null,step:0,mode:'title'};
@@ -1261,6 +1283,16 @@ function openSecret(s){
   spawnExplosion(s.x,s.y,1,'#c8bfae');
   msg('You smash through the cracked wall!','loot');
   VIS=computeFOV(G.x,G.y);
+  if(s.kind==='closet'){
+    msg('…something was waiting in the dark.','warn');
+  }else{
+    setTimeout(()=>{
+      sfx('whoop');
+      spawnText(G.x,G.y-0.7,'HOLY S#!%','#f0d472',19);
+      spawnText(G.x+0.5,G.y-1.4,'🤑','#fff',20);
+      msg(`${G.name}: "HOLY S#!%! A hidden treasure room!"`,'loot');
+    },250);
+  }
   endPlayerTurn();
 }
 
@@ -2094,7 +2126,7 @@ function loadFloor(floor){
   }
   // secret vault: a hidden chamber behind a cracked wall (spot it with Perception)
   SECRETS=[];
-  if(floor>=2&&RAND()<0.55){
+  if(floor>=2&&RAND()<0.65){
     outer:
     for(let t=0;t<60;t++){
       const r=ROOMS[rnd(ROOMS.length)-1];
@@ -2122,8 +2154,10 @@ function loadFloor(floor){
       if(MAP[doorY][doorX]!==T.WALL)continue;
       // carve the chamber (door stays walled until smashed)
       cells.forEach(([cx,cy])=>MAP[cy][cx]=T.FLOOR);
-      SECRETS.push({x:doorX,y:doorY,revealed:false,checked:false,open:false});
+      const sec={x:doorX,y:doorY,revealed:false,checked:false,open:false,kind:'loot'};
+      SECRETS.push(sec);
       if(RAND()<0.3){ // monster closet!
+        sec.kind='closet';
         cells.slice(0,2).forEach(([cx,cy])=>{
           spawnMonster(floorPool(floor)[1]||'skeleton',cx,cy);
           makeElite(ENEMIES[ENEMIES.length-1]);
