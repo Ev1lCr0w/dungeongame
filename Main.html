@@ -915,16 +915,36 @@ function drawSprite(key,cx,cy,o={}){
   return true;
 }
 // hero sprite: race first (elves, lizardfolk…), else class; gendered where the sheet has it
-const HERO_RACE_SPR={elf:'elf',dwarf:'leprechaun',dragonborn:'lizard',halfling:'wood_elf',halforc:'masked_orc',tiefling:'chort'};
-// per-race color shift: the dwarf borrows the stout leprechaun body, re-dyed red-brown
-function heroFilterFor(raceId){return raceId==='dwarf'?'hue-rotate(200deg) saturate(1.15) brightness(0.95)':null;}
+// class decides the body you see; race colors it and sets your build
 const HERO_CLS_SPR={fighter:'knight',barbarian:'orc_boss',rogue:'bandit',ranger:'ranger',wizard:'wizzard',cleric:'cleric_2',paladin:'knight_elite'};
+const HERO_RACE_SPR={elf:'elf',dwarf:'leprechaun',dragonborn:'lizard',halfling:'wood_elf',halforc:'masked_orc',tiefling:'chort'};
+const HERO_RACE_TINT={
+  human:null,
+  elf:'saturate(0.8) brightness(1.16)',                              // pale, ethereal
+  dwarf:'hue-rotate(-14deg) saturate(1.5) brightness(0.88)',          // ruddy and weathered
+  halfling:'brightness(1.12) saturate(1.15)',                         // bright, cheerful
+  halforc:'hue-rotate(70deg) saturate(1.35) brightness(0.92)',        // green-skinned
+  dragonborn:'hue-rotate(110deg) saturate(1.45)',                     // scaled
+  tiefling:'hue-rotate(-40deg) saturate(1.6) brightness(0.95)',       // infernal crimson
+};
+const HERO_RACE_BUILD={human:1,elf:1.02,dwarf:0.88,halfling:0.8,halforc:1.14,dragonborn:1.08,tiefling:1.03};
+function heroFilterFor(raceId){return HERO_RACE_TINT[raceId]||null;}
+function heroScaleFor(raceId){return HERO_RACE_BUILD[raceId]||1;}
 function heroSprFor(raceId,clsId,g,moving){
-  const base=HERO_RACE_SPR[raceId]||HERO_CLS_SPR[clsId]||'knight';
+  // class first — a wizard should look like a wizard whatever their lineage
+  const base=HERO_CLS_SPR[clsId]||HERO_RACE_SPR[raceId]||'knight';
   const kind=moving?'run':'idle';
   for(const k of [`${base}_${g}_${kind}_anim`,`${base}_${kind}_anim`,`${base}_${g}_idle_anim`,`${base}_idle_anim`,base])
     if(SPR[k])return k;
   return null;
+}
+// one CSS crop with the race's tint and build baked in (panels & forge cards)
+function heroCSS(raceId,clsId,g,box,maxSc){
+  let css=sprCSS(heroSprFor(raceId,clsId,g,false),box,maxSc);
+  if(!css)return null;
+  const f=heroFilterFor(raceId);if(f)css+=';filter:'+f;
+  const s=heroScaleFor(raceId);if(s!==1)css+=`;transform:scale(${s});transform-origin:bottom center`;
+  return css;
 }
 function heroSpr(moving){
   return heroSprFor(G.race.id,G.cls.id,G.gender==='f'?'f':'m',moving);
@@ -3178,7 +3198,7 @@ function drawPlayer(){
       ctx.beginPath();ctx.arc(px,py-4,15,a0,a1);ctx.stroke();
     }
   }
-  if(!drawSprite(heroKey,px,py+TS*0.42,{flip:(G.face||1)<0,seed:3,filter:heroFilter})){
+  if(!drawSprite(heroKey,px,py+TS*0.42,{flip:(G.face||1)<0,seed:3,filter:heroFilter,scale:heroScaleFor(G.race.id)})){
     ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText((G.emoji||G.race.emoji),px,py-ENT_RAISE+bob);
     ctx.font='11px serif';ctx.fillText(G.cls.emoji,px+8,py-ENT_RAISE+8+bob);
@@ -3677,9 +3697,7 @@ function openInventory(reopen){
   cells.forEach(cslot=>{
     if(cslot===null){doll+='<div></div>';return;}
     if(cslot==='FIG'){
-      let hs=sprCSS(heroSpr(false),52);
-      const hf=heroFilterFor(G.race.id);
-      if(hs&&hf)hs+=`;filter:${hf}`;
+      const hs=heroCSS(G.race.id,G.cls.id,G.gender==='f'?'f':'m',52);
       doll+=`<div class="pd-fig">${hs?`<span style="${hs}"></span>`:(G.emoji||G.race.emoji)}<span style="position:absolute;bottom:2px;right:4px;font-size:1rem">${G.cls.emoji}</span></div>`;
       return;
     }
@@ -4110,9 +4128,10 @@ function buildCreate(){
   const gg=document.getElementById('gender-grid');
   function renderGenders(){
     gg.innerHTML='';
-    [{id:'m',label:'Male',emoji:'♂',face:'👨',spr:'knight_m_idle_anim'},{id:'f',label:'Female',emoji:'♀',face:'👩',spr:'knight_f_idle_anim'}].forEach(gd=>{
+    [{id:'m',label:'Male',emoji:'♂',face:'👨'},{id:'f',label:'Female',emoji:'♀',face:'👩'}].forEach(gd=>{
       const d=document.createElement('div');d.className='pcard'+(sel.gender===gd.id?' sel':'');
-      d.innerHTML=`${cardIcon(gd.spr,gd.face)}<h4>${gd.label} ${gd.emoji}</h4><p>Choose your hero's look.</p>`;
+      const css=heroCSS(sel.race&&sel.race.id,sel.cls&&sel.cls.id,gd.id,42);
+      d.innerHTML=`${css?`<div class="pspr"><span style="${css}"></span></div>`:`<div class="pemo">${gd.face}</div>`}<h4>${gd.label} ${gd.emoji}</h4><p>Choose your hero's look.</p>`;
       d.onclick=()=>{sel.gender=gd.id;gg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');renderRaces();renderClasses();updateSummary();};
       gg.appendChild(d);
     });
@@ -4122,9 +4141,9 @@ function buildCreate(){
     rg.innerHTML='';
     RACES.forEach(r=>{
       const d=document.createElement('div');d.className='pcard'+(sel.race===r?' sel':'');
-      const key=heroSprFor(r.id,sel.cls&&sel.cls.id,g(),false);
-      d.innerHTML=`${cardIcon(key,r.emoji,42,heroFilterFor(r.id))}<h4>${r.name}</h4><p>${r.desc}</p>`;
-      d.onclick=()=>{sel.race=r;rg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updateSummary();};
+      const css=heroCSS(r.id,sel.cls&&sel.cls.id,g(),42);
+      d.innerHTML=`${css?`<div class="pspr"><span style="${css}"></span></div>`:`<div class="pemo">${r.emoji}</div>`}<h4>${r.name}</h4><p>${r.desc}</p>`;
+      d.onclick=()=>{sel.race=r;renderGenders();renderClasses();rg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');updateSummary();};
       rg.appendChild(d);
     });
   }
@@ -4133,9 +4152,9 @@ function buildCreate(){
     cg.innerHTML='';
     CLASSES.forEach(c=>{
       const d=document.createElement('div');d.className='pcard'+(sel.cls===c?' sel':'');
-      const key=heroSprFor(null,c.id,g(),false);
-      d.innerHTML=`${cardIcon(key,c.emoji)}<h4>${c.name}</h4><p>${c.desc}</p>`;
-      d.onclick=()=>{sel.cls=c;cg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');renderRaces();updateSummary();};
+      const css=heroCSS(sel.race&&sel.race.id,c.id,g(),42);
+      d.innerHTML=`${css?`<div class="pspr"><span style="${css}"></span></div>`:`<div class="pemo">${c.emoji}</div>`}<h4>${c.name}</h4><p>${c.desc}</p>`;
+      d.onclick=()=>{sel.cls=c;cg.querySelectorAll('.pcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');renderRaces();renderGenders();updateSummary();};
       cg.appendChild(d);
     });
   }
@@ -4183,9 +4202,7 @@ function updateSummary(){
     let feats=sel.cls.feats.map(f=>FEAT_NAMES[f]||f).join(', ');
     // animated pixel portrait of the hero-to-be
     const key=heroSprFor(sel.race.id,sel.cls.id,sel.gender==='f'?'f':'m',false);
-    let css=sprCSS(key,86,4);
-    const rf=heroFilterFor(sel.race.id);
-    if(css&&rf)css+=`;filter:${rf}`;
+    const css=heroCSS(sel.race.id,sel.cls.id,sel.gender==='f'?'f':'m',86,4);
     const wep=sprCSS(weaponSprKey(sel.cls.weapon.name),30,2);
     const portrait=css
       ?`<div id="hero-prev-box"><span id="hero-prev" data-key="${key}" style="${css}"></span></div>`
