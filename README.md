@@ -120,6 +120,7 @@ Then open `http://localhost:8000/Main.html`. (Serve it over HTTP rather than ope
 | `tiles.png` | Sprite sheet |
 | `index.html` | Redirect into the game |
 | `manifest.json`, `sw.js`, `icon-*.png` | Installable-app and offline support |
+| `LICENSE` | Terms of use |
 
 ---
 
@@ -130,3 +131,9 @@ Pixel art: **[Dungeon Tileset II](https://0x72.itch.io/dungeontileset-ii)** by *
 All music and sound effects are generated at runtime with the Web Audio API — there are no audio files.
 
 Not affiliated with or endorsed by Wizards of the Coast. Rules are inspired by the d20 system; all names, monsters, and content here are original or generic fantasy.
+
+## License
+
+© 2026 Rick Farah. All rights reserved — see **[LICENSE](LICENSE)**.
+
+Free to play and to read the source for learning. Redistributing, rehosting, selling, or publishing modified versions is not permitted without written permission. The `tiles.png` artwork is CC0 (public domain) and is not restricted by this license.

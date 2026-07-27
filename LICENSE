@@ -1,0 +1,64 @@
+Copyright (c) 2026 Rick Farah. All rights reserved.
+
+DEPTHS OF THE DREAD LICH
+
+
+1. GAME CODE AND ORIGINAL CONTENT
+
+This license covers the game's source code and original content, including
+`Main.html`, `index.html`, `sw.js`, `manifest.json`, the icon images, this
+README, and the game's design, text, dialogue, names, and characters
+(collectively, "the Software"). The Software is proprietary and is NOT open
+source.
+
+You MAY:
+
+  - Play the game, including installing it to your own device for personal
+    use and offline play.
+  - View and read the source code for personal study and learning.
+  - Link to the game or the repository.
+
+You MAY NOT, without prior written permission from the copyright holder:
+
+  - Copy, redistribute, republish, mirror, or rehost the Software or any
+    substantial portion of it, including on other websites, game portals,
+    or app stores.
+  - Sell, license, sublicense, rent, or otherwise commercially exploit the
+    Software.
+  - Create or distribute derivative works, modified versions, forks, or
+    ports of the Software.
+  - Remove or alter copyright, license, or attribution notices.
+
+No rights are granted by implication, estoppel, or otherwise. All rights not
+expressly granted above are reserved by the copyright holder.
+
+
+2. THIRD-PARTY ASSETS (NOT COVERED BY THE ABOVE)
+
+`tiles.png` is "Dungeon Tileset II" by 0x72 (https://0x72.itch.io/dungeontileset-ii),
+released under the Creative Commons CC0 1.0 Universal Public Domain Dedication.
+That artwork remains in the public domain: the restrictions in Section 1 do not
+apply to it, and nothing in this license claims ownership of it or limits your
+rights to it under CC0.
+
+The fonts "Cinzel" and "Crimson Text" are loaded at runtime from Google Fonts
+and are licensed under the SIL Open Font License; they are not distributed as
+part of this repository.
+
+Game mechanics inspired by the d20 system are not claimed as proprietary. This
+project is not affiliated with, endorsed by, or sponsored by Wizards of the
+Coast or Hasbro.
+
+
+3. NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+For licensing inquiries or permission requests, contact the copyright holder
+via the GitHub repository: https://github.com/Ev1lCr0w/dungeongame
